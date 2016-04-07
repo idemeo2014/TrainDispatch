@@ -27,6 +27,5 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="org.kopitubruk.util:JSONUtil:1.5-java7" level="project" />
   </component>
 </module>
