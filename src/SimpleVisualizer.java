@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
@@ -20,48 +19,48 @@ public class SimpleVisualizer {
 
         sprites = new ArrayList<>(trains.size());
 
-        StdDraw.setCanvasSize(1200, 720);
-        StdDraw.setXscale(-1, 21);
-        StdDraw.setYscale(-1, 15);
+        CustomDraw.setCanvasSize(1200, 720);
+        CustomDraw.setXscale(-1, 21);
+        CustomDraw.setYscale(-1, 15);
         renderLoop();
     }
 
     private void drawStations() {
         for (Station station : stations.values()) {
-            StdDraw.text(station.location.x, station.location.y, station.name);
+            CustomDraw.text(station.location.x, station.location.y, station.name);
         }
     }
 
     private void drawEdges() {
-        StdDraw.setPenRadius(0.003);
+        CustomDraw.setPenRadius(0.003);
         for (Collection<Rail> rails : adj) {
             for (Rail rail : rails) {
                 Location kore = stations.get(rail.kore).location;
                 Location sore = stations.get(rail.sore).location;
-                StdDraw.line(kore.x, kore.y, sore.x, sore.y);
+                CustomDraw.line(kore.x, kore.y, sore.x, sore.y);
             }
         }
     }
 
     private void renderLoop() {
-        StdDraw.show(0);
+        CustomDraw.show(0);
 
         LinkedList<RoutingRecord> recordRemoveList = new LinkedList<>();
         LinkedList<TrainSprite> spriteRemoveList = new LinkedList<>();
 
         for (int frameCount = 1, now = 0; !record.isEmpty() || !sprites.isEmpty(); frameCount++) {
             System.out.println(now);
-            StdDraw.clear();
-            StdDraw.setPenColor(StdDraw.BLACK);
+            CustomDraw.clear();
+            CustomDraw.setPenColor(CustomDraw.BLACK);
             drawStations();
             drawEdges();
 
-            StdDraw.setPenColor(StdDraw.RED);
+            CustomDraw.setPenColor(CustomDraw.RED);
 
             // add new sprites
             for (RoutingRecord r : record) {
                 if (r.timeStart == now) {
-                    sprites.add(new TrainSprite(r.train.NAME,
+                    sprites.add(new TrainSprite(r.trainName,
                             stations.get(r.from).location,
                             stations.get(r.to).location,
                             r.timeStart,
@@ -79,7 +78,7 @@ public class SimpleVisualizer {
                 }
             }
 
-            StdDraw.show(80);
+            CustomDraw.show(80);
             now++;
 
             // clean up
@@ -120,7 +119,7 @@ public class SimpleVisualizer {
             double ratio = ((double) now - timeStart) / (timeEnd - timeStart);
             currX = from.x + ratio * rangeX;
             currY = from.y + ratio * rangeY;
-            StdDraw.text(currX, currY, name);
+            CustomDraw.text(currX, currY, name);
         }
     }
 }

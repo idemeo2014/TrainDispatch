@@ -7,13 +7,6 @@
  *  allows you to create drawings consisting of points, lines, and curves
  *  in a window on your computer and to save the drawings to a file.
  *
- *  Todo
- *  ----
- *    -  Add support for gradient fill, etc.
- *    -  Fix setCanvasSize() so that it can only be called once.
- *    -  On some systems, drawing a line (or other shape) that extends way
- *       beyond canvas (e.g., to infinity) dimensions does not get drawn.
- *
  *  Remarks
  *  -------
  *    -  don't use AffineTransform for rescaling since it inverts
@@ -35,19 +28,13 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 
 /**
- *  <i>Standard draw</i>. This class provides a basic capability for
- *  creating drawings with your programs. It uses a simple graphics model that
- *  allows you to create drawings consisting of points, lines, and curves
- *  in a window on your computer and to save the drawings to a file.
- *  <p>
- *  For additional documentation, see <a href="http://introcs.cs.princeton.edu/15inout">Section 1.5</a> of
- *  <i>Introduction to Programming in Java: An Interdisciplinary Approach</i> by Robert Sedgewick and Kevin Wayne.
+ *  Modified StdDraw from <a href="http://introcs.cs.princeton.edu/java/stdlib/StdDraw.java">original version</a>
  *
  *  @author Robert Sedgewick
  *  @author Kevin Wayne
  */
 @SuppressWarnings("ALL")
-public final class StdDraw implements ActionListener, MouseListener, MouseMotionListener, KeyListener {
+public final class CustomDraw implements ActionListener, MouseListener, MouseMotionListener, KeyListener {
 
     // pre-defined colors
     public static final Color BLACK      = Color.BLACK;
@@ -122,7 +109,7 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
     private static Graphics2D offscreen, onscreen;
 
     // singleton for callbacks: avoids generation of extra .class files
-    private static StdDraw std = new StdDraw();
+    private static CustomDraw std = new CustomDraw();
 
     // the frame for drawing to the screen
     private static JFrame frame;
@@ -140,7 +127,7 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
   
 
     // singleton pattern: client can't instantiate
-    private StdDraw() { }
+    private CustomDraw() { }
 
 
     // static initializer
@@ -201,27 +188,12 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 
         frame.setContentPane(draw);
         frame.addKeyListener(std);    // JLabel cannot get keyboard focus
-        frame.setResizable(false);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);            // closes all windows
         // frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);      // closes only current window
-        frame.setTitle("Standard Draw");
-        frame.setJMenuBar(createMenuBar());
+        frame.setTitle("Train Dispatch");
         frame.pack();
         frame.requestFocusInWindow();
         frame.setVisible(true);
-    }
-
-    // create the menu bar (changed to private)
-    private static JMenuBar createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-        JMenu menu = new JMenu("File");
-        menuBar.add(menu);
-        JMenuItem menuItem1 = new JMenuItem(" Save...   ");
-        menuItem1.addActionListener(std);
-        menuItem1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
-                                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-        menu.add(menuItem1);
-        return menuBar;
     }
 
 
@@ -656,7 +628,7 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
 
         // in case file is inside a .jar
         if ((icon == null) || (icon.getImageLoadStatus() != MediaTracker.COMPLETE)) {
-            URL url = StdDraw.class.getResource(filename);
+            URL url = CustomDraw.class.getResource(filename);
             if (url == null) throw new IllegalArgumentException("image " + filename + " not found");
             icon = new ImageIcon(url);
         }
@@ -924,11 +896,11 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
      * This method cannot be called directly.
      */
     public void actionPerformed(ActionEvent e) {
-        FileDialog chooser = new FileDialog(StdDraw.frame, "Use a .png or .jpg extension", FileDialog.SAVE);
+        FileDialog chooser = new FileDialog(CustomDraw.frame, "Use a .png or .jpg extension", FileDialog.SAVE);
         chooser.setVisible(true);
         String filename = chooser.getFile();
         if (filename != null) {
-            StdDraw.save(chooser.getDirectory() + File.separator + chooser.getFile());
+            CustomDraw.save(chooser.getDirectory() + File.separator + chooser.getFile());
         }
     }
 
@@ -988,8 +960,8 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
      */
     public void mousePressed(MouseEvent e) {
         synchronized (mouseLock) {
-            mouseX = StdDraw.userX(e.getX());
-            mouseY = StdDraw.userY(e.getY());
+            mouseX = CustomDraw.userX(e.getX());
+            mouseY = CustomDraw.userY(e.getY());
             mousePressed = true;
         }
     }
@@ -1008,8 +980,8 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
      */
     public void mouseDragged(MouseEvent e)  {
         synchronized (mouseLock) {
-            mouseX = StdDraw.userX(e.getX());
-            mouseY = StdDraw.userY(e.getY());
+            mouseX = CustomDraw.userX(e.getX());
+            mouseY = CustomDraw.userY(e.getY());
         }
     }
 
@@ -1018,8 +990,8 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
      */
     public void mouseMoved(MouseEvent e) {
         synchronized (mouseLock) {
-            mouseX = StdDraw.userX(e.getX());
-            mouseY = StdDraw.userY(e.getY());
+            mouseX = CustomDraw.userX(e.getX());
+            mouseY = CustomDraw.userY(e.getY());
         }
     }
 
@@ -1100,26 +1072,26 @@ public final class StdDraw implements ActionListener, MouseListener, MouseMotion
      * Test client.
      */
     public static void main(String[] args) {
-        StdDraw.square(.2, .8, .1);
-        StdDraw.filledSquare(.8, .8, .2);
-        StdDraw.circle(.8, .2, .2);
+        CustomDraw.square(.2, .8, .1);
+        CustomDraw.filledSquare(.8, .8, .2);
+        CustomDraw.circle(.8, .2, .2);
 
-        StdDraw.setPenColor(StdDraw.BOOK_RED);
-        StdDraw.setPenRadius(.02);
-        StdDraw.arc(.8, .2, .1, 200, 45);
+        CustomDraw.setPenColor(CustomDraw.BOOK_RED);
+        CustomDraw.setPenRadius(.02);
+        CustomDraw.arc(.8, .2, .1, 200, 45);
 
         // draw a blue diamond
-        StdDraw.setPenRadius();
-        StdDraw.setPenColor(StdDraw.BOOK_BLUE);
+        CustomDraw.setPenRadius();
+        CustomDraw.setPenColor(CustomDraw.BOOK_BLUE);
         double[] x = { .1, .2, .3, .2 };
         double[] y = { .2, .3, .2, .1 };
-        StdDraw.filledPolygon(x, y);
+        CustomDraw.filledPolygon(x, y);
 
         // text
-        StdDraw.setPenColor(StdDraw.BLACK);
-        StdDraw.text(0.2, 0.5, "black text");
-        StdDraw.setPenColor(StdDraw.WHITE);
-        StdDraw.text(0.8, 0.8, "white text");
+        CustomDraw.setPenColor(CustomDraw.BLACK);
+        CustomDraw.text(0.2, 0.5, "black text");
+        CustomDraw.setPenColor(CustomDraw.WHITE);
+        CustomDraw.text(0.8, 0.8, "white text");
     }
 
 }

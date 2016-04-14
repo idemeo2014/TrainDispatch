@@ -7,15 +7,15 @@ class RoutingRecord {
 
     final int timeStart;
     final int timeEnd;
-    final Train train;
+    final String trainName;
     final int from;
     final int to;
 
 
-    public RoutingRecord(int timeStart, int timeEnd, Train t, int from, int to) {
+    public RoutingRecord(int timeStart, int timeEnd, String trainName, int from, int to) {
         this.timeStart = timeStart;
         this.timeEnd = timeEnd;
-        this.train = t;
+        this.trainName = trainName;
         this.from = from;
         this.to = to;
     }

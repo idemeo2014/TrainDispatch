@@ -1,12 +1,8 @@
 import org.junit.Test;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.PriorityQueue;
+import java.util.LinkedList;
 import java.util.Scanner;
 
 public class Playground {

@@ -16,7 +16,7 @@ public class Scheduler {
     private List<Train> updateQueue;   // The order for updating train states
     private List<Train> trains;
     private Collection<Train> removeList;       // Trains to be removed after this clock tick
-    private List<RoutingRecord> routings;      // Actual routing records
+    private LinkedList<RoutingRecord> routings;      // Actual routing records
     private double optimalCost;
     private double minimumCost;
 
@@ -33,10 +33,6 @@ public class Scheduler {
         minimumCost = 0.0;
     }
 
-
-    private void initJson() {
-
-    }
 
     private void init() {
         try (Scanner in = new Scanner(inputFile)) {
@@ -173,14 +169,14 @@ public class Scheduler {
 
 
     public void moved(int timeStart, int timeEnd, Train t, int from, int to) {
-        routings.add(new RoutingRecord(timeStart, timeEnd, t, from, to));
+        routings.add(new RoutingRecord(timeStart, timeEnd, t.NAME, from, to));
     }
 
 
     private void printOutput() {
         routings.sort(RoutingRecord.comparator());
         for (RoutingRecord re : routings) {
-            System.out.printf("%3d %-15s %3d -> %3d%n", re.timeStart, re.train.NAME, stations.get(re.from).index, stations.get(re.to).index);
+            System.out.printf("%3d %-15s %3d -> %3d%n", re.timeStart, re.trainName, stations.get(re.from).index, stations.get(re.to).index);
         }
         System.out.println();
         System.out.printf("    duration: %d%n", now);

@@ -44,7 +44,7 @@ public class ImprovedStation extends Station {
 
     @Override
     public void didHeadTo(int station, int now, Train t) {
-        System.out.printf("%3d departed %-15s %3d -> %3d%n", now, t.NAME, index, station);
+//        System.out.printf("%3d departed %-15s %3d -> %3d%n", now, t.NAME, index, station);
         Rail connection = adj.get(t.path.get(0).index);
         int tripDuration = connection.timeToTravel(t.LEN, t.SPEED);
         t.setState(TrainState.ENROUTE);
@@ -53,7 +53,7 @@ public class ImprovedStation extends Station {
 
     @Override
     public void haveReached(int station, int now, Train t) {
-        System.out.printf("%3d reached %-15s %3d -> %3d%n", now, t.NAME, index, station);
+//        System.out.printf("%3d reached %-15s %3d -> %3d%n", now, t.NAME, index, station);
         t.setState(TrainState.IDLE);
         t.update(now);
     }
