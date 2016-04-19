@@ -1,1 +1,1 @@
-![](https://upload.wikimedia.org/wikipedia/commons/6/65/NYCT_R142A.jpg)
+![](https://raw.githubusercontent.com/cPolaris/TrainDispatch/master/assets/Train-States.svg)
