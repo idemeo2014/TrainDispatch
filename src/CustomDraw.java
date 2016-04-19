@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * <a href="http://introcs.cs.princeton.edu/java/stdlib/StdDraw.java">original version</a>
  * @author Robert Sedgewick
@@ -32,37 +33,9 @@ import java.util.Map;
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 final class CustomDraw implements Runnable {
 
-    // pre-defined colors
-    private final Color BLACK      = Color.BLACK;
-    private final Color BLUE       = Color.BLUE;
-    private final Color CYAN       = Color.CYAN;
-    private final Color DARK_GRAY  = Color.DARK_GRAY;
-    private final Color GRAY       = Color.GRAY;
-    private final Color GREEN      = Color.GREEN;
-    private final Color LIGHT_GRAY = Color.LIGHT_GRAY;
-    private final Color MAGENTA    = Color.MAGENTA;
-    private final Color ORANGE     = Color.ORANGE;
-    private final Color PINK       = Color.PINK;
-    private final Color RED        = Color.RED;
-    private final Color WHITE      = Color.WHITE;
-    private final Color YELLOW     = Color.YELLOW;
-
-    /**
-     * Shade of blue used in Introduction to Programming in Java.
-     * It is Pantone 300U. The RGB values are approximately (9, 90, 166).
-     */
-    private final Color BOOK_BLUE       = new Color(  9,  90, 166);
-    private final Color BOOK_LIGHT_BLUE = new Color(103, 198, 243);
-
-    /**
-     * Shade of red used in Algorithms 4th edition.
-     * It is Pantone 1805U. The RGB values are approximately (150, 35, 31).
-     */
-    private final Color BOOK_RED = new Color(150, 35, 31);
-
     // default colors
-    private final Color DEFAULT_PEN_COLOR   = BLACK;
-    private final Color DEFAULT_CLEAR_COLOR = WHITE;
+    private final Color DEFAULT_PEN_COLOR   = Color.black;
+    private final Color DEFAULT_CLEAR_COLOR = Color.white;
 
     // current pen color
     private Color penColor;
@@ -78,12 +51,11 @@ final class CustomDraw implements Runnable {
     // current pen radius
     private double penRadius;
 
-    // show we draw immediately or wait until next show?
+    // we draw immediately or wait until next run?
     private boolean defer = false;
 
-    // boundary of drawing canvas, 0% border
-    // private final double BORDER = 0.05;
-    private final double BORDER = 0.00;
+    // boundary of drawing canvas, 5 %
+     private final double BORDER = 0.05;
     private final double DEFAULT_XMIN = 0.0;
     private final double DEFAULT_XMAX = 1.0;
     private final double DEFAULT_YMIN = 0.0;
@@ -91,7 +63,7 @@ final class CustomDraw implements Runnable {
     private double xmin, ymin, xmax, ymax;
 
     // default font
-    private final Font DEFAULT_FONT = new Font("SansSerif", Font.PLAIN, 16);
+    private final Font DEFAULT_FONT = new Font("SansSerif", Font.PLAIN, 14);
 
     // current font
     private Font font;
@@ -100,13 +72,10 @@ final class CustomDraw implements Runnable {
     private BufferedImage offscreenImage, onscreenImage;
     private Graphics2D offscreen, onscreen;
 
-    // singleton for callbacks: avoids generation of extra .class files
-    // private CustomDraw std = new CustomDraw();
-
     // the animationFrame for drawing to the screen
     private JFrame animationFrame;
     
-    // Graph animation related
+    // Graph related
     private final int FPS = 30;
     private final int FPT = 30;
     private Collection<Rail>[] adj;
@@ -116,13 +85,13 @@ final class CustomDraw implements Runnable {
     private Scheduler runningSche;
 
 
-    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<Train> trains, List<RoutingRecord> re) {
+    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re) {
         init();
 
         adj = a;
         stations = ss;
         record = re;
-        sprites = new ArrayList<>(trains.size());
+        sprites = new LinkedList<>();
 
         double maxX = -1;
         double maxY = -1;
@@ -133,15 +102,16 @@ final class CustomDraw implements Runnable {
             if (currY > maxY) maxY = currY;
         }
 
-        setCanvasSize((int) (512.0 / maxY * maxX) , 512);
-        setXscale(-1, maxX + 1);
-        setYscale(-1, maxY + 1);
+        setCanvasSize((int) (560.0 / maxY * maxX) , 560);
+        setXscale(0, maxX);
+        setYscale(0, maxY);
     }
 
 
     // Entry point
     @Override
     public void run() {
+        record.sort(RoutingRecord.comparator());
         animate();
     }
 
@@ -188,11 +158,11 @@ final class CustomDraw implements Runnable {
 
         for (int frameCount = 1, now = 0; !record.isEmpty() || !sprites.isEmpty(); frameCount++) {
             clear();
-            setPenColor(BLACK);
+            setPenColor(Color.BLACK);
             drawStations();
             drawEdges();
 
-            setPenColor(RED);
+            setPenColor(Color.RED);
 
             // add new sprites
             for (RoutingRecord r : record) {
@@ -345,11 +315,6 @@ final class CustomDraw implements Runnable {
     }
 
     /**
-     * Get the current pen radius.
-     */
-    private double getPenRadius() { return penRadius; }
-
-    /**
      * Set the pen size to the default (.002).
      */
     private void setPenRadius() { setPenRadius(DEFAULT_PEN_RADIUS); }
@@ -366,11 +331,6 @@ final class CustomDraw implements Runnable {
         // BasicStroke stroke = new BasicStroke(scaledPenRadius);
         offscreen.setStroke(stroke);
     }
-
-    /**
-     * Get the current pen color.
-     */
-    private Color getPenColor() { return penColor; }
 
     /**
      * Set the pen color to the default color (black).
@@ -752,11 +712,11 @@ final class CustomDraw implements Runnable {
      * Display on screen, pause for t milliseconds, and turn on
      * <em>animation mode</em>: subsequent calls to
      * drawing methods such as <tt>line()</tt>, <tt>circle()</tt>, and <tt>square()</tt>
-     * will not be displayed on screen until the next call to <tt>show()</tt>.
+     * will not be displayed on screen until the next call to <tt>ikuzo()</tt>.
      * This is useful for producing animations (clear the screen, draw a bunch of shapes,
      * display on screen for a fixed amount of timeStart, and repeat). It also speeds up
-     * drawing a huge number of shapes (call <tt>show(0)</tt> to defer drawing
-     * on screen, draw the shapes, and call <tt>show(0)</tt> to display them all
+     * drawing a huge number of shapes (call <tt>ikuzo(0)</tt> to defer drawing
+     * on screen, draw the shapes, and call <tt>ikuzo(0)</tt> to display them all
      * on screen at once).
      * @param t number of milliseconds
      */
@@ -794,21 +754,21 @@ final class CustomDraw implements Runnable {
         filledSquare(.8, .8, .2);
         circle(.8, .2, .2);
 
-        setPenColor(BOOK_RED);
+        setPenColor(Color.red);
         setPenRadius(.02);
         arc(.8, .2, .1, 200, 45);
 
         // draw a blue diamond
         setPenRadius();
-        setPenColor(BOOK_BLUE);
+        setPenColor(Color.blue);
         double[] x = { .1, .2, .3, .2 };
         double[] y = { .2, .3, .2, .1 };
         filledPolygon(x, y);
 
         // text
-        setPenColor(BLACK);
+        setPenColor(Color.black);
         text(0.2, 0.5, "black text");
-        setPenColor(WHITE);
+        setPenColor(Color.white);
         text(0.8, 0.8, "white text");
     }
 

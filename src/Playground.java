@@ -3,13 +3,13 @@ import java.nio.file.Paths;
 
 class Playground {
     public static void main(String[] args) {
-        System.out.println(Playground.class.getResource("grid.txt"));
+        Path p = Paths.get(Playground.class.getResource("curr_graph").getPath());
 //        Path in = Paths.get("in/grid.txt");
 //        Path out = Paths.get("in/out.txt");
 //        Scheduler imp = new Scheduler(in, out, RoutingStrategy.IMPROVED);
-//        imp.show();
+//        imp.ikuzo();
 //        System.out.println("---------------------------");
 //        Scheduler base = new Scheduler(in, out, RoutingStrategy.BASELINE);
-//        base.show();
+//        base.ikuzo();
     }
 }

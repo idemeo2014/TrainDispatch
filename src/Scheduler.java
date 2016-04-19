@@ -1,10 +1,5 @@
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class Scheduler {
@@ -15,13 +10,12 @@ public class Scheduler {
     private RoutingStrategy strategy;
     private Router router;
     private Map<Integer, Station> stations;        // Map from name to index
-    private int now;                               // The master clock
     private List<Train> updateQueue;               // The order for updating train states
-    private List<Train> trains;
     private Collection<Train> removeList;          // Trains to be removed after this clock tick
     private LinkedList<RoutingRecord> routings;    // Actual routing records
     private double optimalCost;
     private double minimumCost;
+    private int now;                               // The master clock
 
 
     public Scheduler(InputStream graphInput, InputStream trainInput, RoutingStrategy strat) {
@@ -35,12 +29,36 @@ public class Scheduler {
         loadGraph();
         loadTrains();
         calculateOptimalCost();
+        run();
+        printOutput();
+    }
+
+    public Scheduler(InputStream graphInput, List<Train> trains) {
+        removeList = new LinkedList<>();
+        routings = new LinkedList<>();
+        graphIn = graphInput;
+        now = 0;
+        minimumCost = 0.0;
+        loadGraph();
+        updateQueue = trains;  // these trains are not boostraped yet
+        bootstrapTrains();
+        calculateOptimalCost();
+        run();
+        printOutput();
+    }
+
+    private void calculateOptimalCost() {
+        optimalCost = 0.0;
+        for (Train train : updateQueue) {
+            double shortestPathLength = router.pathTotalLength(train.path) + train.path.size() * train.length;
+            optimalCost += shortestPathLength * train.CPM;
+        }
     }
 
     private void loadGraph() {
         Scanner in = new Scanner(graphIn);
         int stationCount = in.nextInt();
-        
+
         stations = new HashMap<>(stationCount);
         router = new Router(stationCount, stations);
         
@@ -82,12 +100,11 @@ public class Scheduler {
     }
 
     
-    public void loadTrains() {
+    private void loadTrains() {
         Scanner scin = new Scanner(trainIn);
         int trainCount = scin.nextInt();
 
-        updateQueue = new LinkedList<>();
-        trains = new LinkedList<>();
+        updateQueue = new ArrayList<>(trainCount);
 
         for (int i = 0; i < trainCount; i++) {
             String name = scin.next();
@@ -105,22 +122,21 @@ public class Scheduler {
                     scin.nextDouble(),
                     scin.nextDouble(),
                     scin.nextDouble(),
-                    scin.nextDouble(),
-                    this);
+                    scin.nextDouble());
 
             updateQueue.add(newTrain);
-            trains.add(newTrain);
             newTrain.setPath(router.shortest(from, to));
+            newTrain.setBoss(this);
         }
 
         scin.close();
     }
 
 
-    private void calculateOptimalCost() {
+    private void bootstrapTrains() {
         for (Train train : updateQueue) {
-            double shortestPathLength = router.pathTotalLength(train.path) + train.path.size() * train.length;
-            optimalCost += shortestPathLength * train.CPM;
+            train.setPath(router.shortest(train.fromInd, train.toInd));
+            train.setBoss(this);
         }
     }
 
@@ -139,8 +155,8 @@ public class Scheduler {
             now++;
         }
 
-
-        (new Thread(new CustomDraw(router.adj, stations, trains, routings))).start();
+        // Start animating in a new thread
+        (new Thread(new CustomDraw(router.adj, stations, routings))).start();
     }
 
 

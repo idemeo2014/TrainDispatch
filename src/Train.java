@@ -30,7 +30,7 @@ abstract class Train implements Comparable<Train> {
     protected TrainState state;
 
     // The scheduler to report to
-    public final Scheduler BOSS;
+    public Scheduler BOSS;
 
 
     public Train(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick, Scheduler boss) {
@@ -44,6 +44,18 @@ abstract class Train implements Comparable<Train> {
         CPM = costPerMile;
         CPT = costPerIdleTick;
         BOSS = boss;
+    }
+
+    public Train(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick) {
+        namae = name;
+        this.departTime = departTime;
+        fromInd = from;
+        toInd = to;
+        type = traintype;
+        length = trainLen;
+        this.speed = speed;
+        CPM = costPerMile;
+        CPT = costPerIdleTick;
     }
 
 
@@ -68,6 +80,9 @@ abstract class Train implements Comparable<Train> {
         path = newPath;
     }
 
+    public void setBoss(Scheduler theBoss) {
+        BOSS = theBoss;
+    }
     public void setState(TrainState st) {
         state = st;
     }

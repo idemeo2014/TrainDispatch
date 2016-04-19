@@ -1,10 +1,11 @@
 
 public class BaselineTrain extends Train {
 
-    public BaselineTrain(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick, Scheduler boss) {
-        super(name, departTime, from, to, traintype, trainLen, speed, costPerMile, costPerIdleTick, boss);
+    public BaselineTrain(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick) {
+        super(name, departTime, from, to, traintype, trainLen, speed, costPerMile, costPerIdleTick);
         state = TrainState.IDLE;
     }
+
 
     @Override
     public void update(int now) {
