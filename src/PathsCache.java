@@ -6,7 +6,7 @@ import java.util.Map;
  * Least Recently Used cache for caching shortest paths
  * originating from one station to others
  */
-public class PathsCache {
+class PathsCache {
 
     private final int CAPACITY;  // max cache size
     private int size;            // number of items already stored

@@ -1,5 +1,4 @@
 import java.util.List;
-import java.util.Map;
 
 
 public class ImprovedStation extends Station {
@@ -16,7 +15,7 @@ public class ImprovedStation extends Station {
         List<Station> path = t.path;
 
         //////////////////////////////////////
-//        System.out.printf("willMove %3d at %3d %-15s path= [ ", now, index, t.NAME);
+//        System.out.printf("willMove %3d at %3d %-15s path= [ ", now, index, t.namae);
 //        for (Station s : path) {
 //            System.out.print(s.index + " ");
 //        }
@@ -30,7 +29,7 @@ public class ImprovedStation extends Station {
 
         Rail connection = adj.get(path.get(0).index);
         int arrivalTime = connection.enqueue(index, t, now);
-        int tripDuration = connection.timeToTravel(t.LEN, t.SPEED);
+        int tripDuration = connection.timeToTravel(t.length, t.speed);
         int timeDepart = arrivalTime - tripDuration;
 
         if (timeDepart == now) {
@@ -44,16 +43,16 @@ public class ImprovedStation extends Station {
 
     @Override
     public void didHeadTo(int station, int now, Train t) {
-//        System.out.printf("%3d departed %-15s %3d -> %3d%n", now, t.NAME, index, station);
+//        System.out.printf("%3d departed %-15s %3d -> %3d%n", now, t.namae, index, station);
         Rail connection = adj.get(t.path.get(0).index);
-        int tripDuration = connection.timeToTravel(t.LEN, t.SPEED);
+        int tripDuration = connection.timeToTravel(t.length, t.speed);
         t.setState(TrainState.ENROUTE);
         t.setSit(now + tripDuration);
     }
 
     @Override
     public void haveReached(int station, int now, Train t) {
-//        System.out.printf("%3d reached %-15s %3d -> %3d%n", now, t.NAME, index, station);
+//        System.out.printf("%3d reached %-15s %3d -> %3d%n", now, t.namae, index, station);
         t.setState(TrainState.IDLE);
         t.update(now);
     }

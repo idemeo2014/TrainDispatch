@@ -12,14 +12,6 @@ public class BaselineStation extends Station {
     public void willMove(int now, Train t) {
         List<Station> path = t.path();
 
-        //////////////////////////
-//        System.out.printf("willMove %3d at %3d %-15s path= [ ", now, index, t.NAME);
-//        for (Station s : path) {
-//            System.out.print(s.index + " ");
-//        }
-//        System.out.println(" ]");
-        //////////////////////////
-
         if (path.size() == 0) {
             t.BOSS.done(now, t);
             return;

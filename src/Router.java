@@ -54,9 +54,6 @@ public class Router {
 
     /**
      * Distance between two adjacent stations
-     * @param a index of station a
-     * @param b index of station b
-     * @return
      */
     public double distanceAdj(int a, int b) {
         for (Rail e : adj[a]) {
@@ -64,6 +61,7 @@ public class Router {
         }
         throw new NoSuchElementException(String.format("No edge between %d and %d", a, b));
     }
+
 
     /**
      * Length of a path.
@@ -77,6 +75,7 @@ public class Router {
         }
         return totalDistance;
     }
+
 
     public List<Station> shortest(int from, int to) {
         LinkedList<Station> shortestPath = new LinkedList<>();

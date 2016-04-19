@@ -1,7 +1,7 @@
 import java.util.Comparator;
 
 /**
- * Record for a single routing
+ * Record for a single routing action
  */
 class RoutingRecord {
 

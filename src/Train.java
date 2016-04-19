@@ -4,15 +4,15 @@ import java.util.List;
 abstract class Train implements Comparable<Train> {
 
     // PHYSICAL PROPERTIES
-    public final String NAME;
-    public final int    DEPART_TIME;        // Moment the train sets off
-    public final int FROM_IND;
-    public final int TO_IND;
-    public final double SPEED;         // mph
-    public final double LEN;           // Length
+    public final String namae;
+    public final int departTime;        // Moment the train sets off
+    public final int fromInd;
+    public final int toInd;
+    public final double speed;         // mph
+    public final double length;           // Length
     public final double CPM;           // cost per mile
     public final double CPT;           // cost per idle tick
-    public final TrainType TYPE;       // train category
+    public final TrainType type;       // train category
 
 
     // Cumulative cost of this train
@@ -34,13 +34,13 @@ abstract class Train implements Comparable<Train> {
 
 
     public Train(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick, Scheduler boss) {
-        NAME = name;
-        DEPART_TIME = departTime;
-        FROM_IND = from;
-        TO_IND = to;
-        TYPE = traintype;
-        LEN = trainLen;
-        SPEED = speed;
+        namae = name;
+        this.departTime = departTime;
+        fromInd = from;
+        toInd = to;
+        type = traintype;
+        length = trainLen;
+        this.speed = speed;
         CPM = costPerMile;
         CPT = costPerIdleTick;
         BOSS = boss;
@@ -80,7 +80,7 @@ abstract class Train implements Comparable<Train> {
     // COMPARISON RELATED
     @Override
     public int compareTo(Train b) {
-        return (int) (b.CPT + b.TYPE.timeCost() - this.CPT - this.TYPE.timeCost());
+        return (int) (b.CPT + b.type.timeCost() - this.CPT - this.type.timeCost());
     }
 
     public static Comparator<Train> comparator() {

@@ -48,43 +48,32 @@ public class Rail {
      */
     public int enqueue(int fromStation, Train t, int now) {
         update(now);
+        int travelTime = timeToTravel(t.length, t.speed);
 
-        //////////////////////
-        // System.out.printf("%d rail %d - %d %s%n", now, kore, sore, queue.toString());
-        //////////////////////
-
-        int travelTime = timeToTravel(t.LEN, t.SPEED);
-
+        // if Queue is empty
         if (queue.isEmpty()) {
             int timeArrival = now + travelTime;
-            queue.addLast(new QueueRecord(t.SPEED, now, timeArrival, fromStation == kore));
-            t.addCost(0, railLen + t.LEN);
-            t.BOSS.moved(now, queue.getLast().unlockTime, t, fromStation, other(fromStation));
+            queue.addLast(new QueueRecord(t.speed, now, timeArrival, fromStation == kore));
+            t.addCost(0, railLen + t.length);
+            t.BOSS.moved(now, timeArrival, t, fromStation, other(fromStation));
+            return timeArrival;
+        }
+
+        // if Queue not empty
+        QueueRecord lastRecord = queue.peekLast();
+        int lastUnlockTime = lastRecord.unlockTime;
+        boolean lastWasUpward = lastRecord.upward;
+
+        // same direction as last in queue ?
+        if ((fromStation == kore && lastWasUpward) || (fromStation == sore && !lastWasUpward)) {
+            int safeTime = timeSafeToFollowLast(now, t.speed);
+            queue.addLast(new QueueRecord(t.speed, safeTime, safeTime + travelTime, fromStation == kore));
+            t.addCost(safeTime - now, railLen + t.length);
+            t.BOSS.moved(safeTime, safeTime + travelTime, t, fromStation, other(fromStation));
         } else {
-            QueueRecord lastRecord = queue.peekLast();
-            int lastUnlockTime = lastRecord.unlockTime;
-            boolean lastWasUpward = lastRecord.upward;
-
-            // the same direction as last in queue
-            if ((fromStation == kore && lastWasUpward) || (fromStation == sore && !lastWasUpward)) {
-                int safeTime = lastRecord.departTime + (int) Math.ceil(SAFE_DISTANCE / lastRecord.speed);
-                int wait = safeTime - now;
-                if (wait <= 0) {
-                    queue.addLast(new QueueRecord(t.SPEED, now, now + travelTime, fromStation == kore));
-                    t.addCost(0, railLen + t.LEN);
-                    t.BOSS.moved(now, queue.getLast().unlockTime, t, fromStation, other(fromStation));
-                } else {
-                    queue.addLast(new QueueRecord(t.SPEED, safeTime, safeTime + travelTime, fromStation == kore));
-                    t.addCost(wait, railLen + t.LEN);
-                    t.BOSS.moved(safeTime, queue.getLast().unlockTime, t, fromStation, other(fromStation));
-                }
-            } else {  // opposite direction
-                lastUnlockTime = Math.abs(lastUnlockTime);
-                queue.addLast(new QueueRecord(t.SPEED, now, lastUnlockTime + travelTime, fromStation == kore));
-                t.addCost(lastUnlockTime - now, railLen + t.LEN);
-                t.BOSS.moved(lastUnlockTime, queue.getLast().unlockTime, t, fromStation, other(fromStation));
-            }
-
+            queue.addLast(new QueueRecord(t.speed, lastUnlockTime, lastUnlockTime + travelTime, fromStation == kore));
+            t.addCost(lastUnlockTime - now, railLen + t.length);
+            t.BOSS.moved(lastUnlockTime, queue.getLast().unlockTime, t, fromStation, other(fromStation));
         }
 
         return queue.getLast().unlockTime;
@@ -92,8 +81,8 @@ public class Rail {
 
 
     private void handle(Train t, int now, int unlock, boolean upward, int waitTime, int tripStart, int tripEnd, int fromInd) {
-        queue.addLast(new QueueRecord(t.SPEED, now, unlock, upward));
-        t.addCost(waitTime, t.LEN + railLen);
+        queue.addLast(new QueueRecord(t.speed, now, unlock, upward));
+        t.addCost(waitTime, t.length + railLen);
         t.BOSS.moved(tripStart, tripEnd, t, fromInd, other(fromInd));
     }
 
@@ -118,6 +107,21 @@ public class Rail {
             queue.removeFirst();
         }
         lastUpdated = now;
+    }
+
+
+    private int timeSafeToFollowLast(int now, double followingSpeed) {
+        QueueRecord lastRecord = queue.getLast();
+        double lastSpeed = lastRecord.speed;
+        int safeDistanceTime = lastRecord.departTime + (int) Math.ceil(SAFE_DISTANCE / lastSpeed);
+
+        if (followingSpeed <= lastSpeed) {
+            return now >= safeDistanceTime ? now : safeDistanceTime;
+        } else {
+            return (int) Math.ceil(lastRecord.departTime +
+                (railLen * (followingSpeed - lastSpeed) - SAFE_DISTANCE * lastSpeed) /
+                (followingSpeed * lastSpeed));
+        }
     }
 
 
