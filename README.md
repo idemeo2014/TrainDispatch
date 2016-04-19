@@ -1,1 +1,1 @@
-![](https://raw.githubusercontent.com/cPolaris/TrainDispatch/master/assets/Train-States.svg)
+![](https://raw.githubusercontent.com/cPolaris/TrainDispatch/master/assets/Train-States.png)
