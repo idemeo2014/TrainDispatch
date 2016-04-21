@@ -2,10 +2,13 @@ import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.PriorityQueue;
+import java.util.Random;
 
 class Playground {
     public static void main(String[] args) {
-        pq();
+        int abc;
+        System.out.println(3);
+//        stats();
 //        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 //        int width = gd.getDisplayMode().getWidth();
 //        int height = gd.getDisplayMode().getHeight();
@@ -28,14 +31,10 @@ class Playground {
     }
 
     private static void stats() {
-        int size = 200;
+        int size = 2000;
         double[] a = new double[size];
         for (int i = 0; i < size; i++) {
-            a[i] = RandTrainGenerator.normal(0, 500);
-        }
-
-        for (double v : a) {
-            System.out.println(v);
+            a[i] = RandomScheduleGenerator.normal(90.0, 5);
         }
 
         double minA = StdStats.min(a);

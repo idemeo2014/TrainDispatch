@@ -75,7 +75,7 @@ class MainMenu {
         constraints.gridy = 4;
         menuPanel.add(new JLabel("Burst"), constraints);
 
-        JSlider burstSlider = new JSlider(0, 512);
+        JSlider burstSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 4;
@@ -86,7 +86,7 @@ class MainMenu {
         constraints.gridy = 5;
         menuPanel.add(new JLabel("Crowdedness"), constraints);
 
-        JSlider crowdSlider = new JSlider(0, 512);
+        JSlider crowdSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 5;
@@ -97,7 +97,7 @@ class MainMenu {
         constraints.gridy = 6;
         menuPanel.add(new JLabel("Time Sensitivity"), constraints);
 
-        JSlider timeSlider = new JSlider(0, 512);
+        JSlider timeSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 6;
@@ -108,7 +108,7 @@ class MainMenu {
         constraints.gridy = 7;
         menuPanel.add(new JLabel("Speed Variance"), constraints);
 
-        JSlider speedVarSlider = new JSlider(0, 512);
+        JSlider speedVarSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 7;
@@ -119,7 +119,7 @@ class MainMenu {
         constraints.gridy = 8;
         menuPanel.add(new JLabel("Train Composition"), constraints);
 
-        JSlider compSlider = new JSlider(0, 512);
+        JSlider compSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 8;

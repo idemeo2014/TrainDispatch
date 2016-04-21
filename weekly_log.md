@@ -1,0 +1,1 @@
+**This file contains the weekly log for the project**
