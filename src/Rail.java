@@ -101,7 +101,7 @@ public class Rail {
     }
 
 
-    public void update(int now) {
+    private void update(int now) {
         if (now == lastUpdated) return;
         while (!queue.isEmpty() && queue.peekFirst().unlockTime <= now) {
             queue.removeFirst();

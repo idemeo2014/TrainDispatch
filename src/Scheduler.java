@@ -14,37 +14,37 @@ public class Scheduler {
     private Collection<Train> removeList;          // Trains to be removed after this clock tick
     private LinkedList<RoutingRecord> routings;    // Actual routing records
     private double optimalCost;
-    private double minimumCost;
+    private double actualCost;
     private int now;                               // The master clock
+    private boolean toAnimate;
 
-
-    public Scheduler(InputStream graphInput, InputStream trainInput, RoutingStrategy strat) {
+    public Scheduler(InputStream graphInput, InputStream trainInput, RoutingStrategy strat, boolean toAni) {
         removeList = new LinkedList<>();
         routings = new LinkedList<>();
         graphIn = graphInput;
         trainIn = trainInput;
         strategy = strat;
+        toAnimate = toAni;
         now = 0;
-        minimumCost = 0.0;
+        actualCost = 0.0;
         loadGraph();
         loadTrains();
         calculateOptimalCost();
-        run();
-        printOutput();
+        // printOutput();
     }
 
-    public Scheduler(InputStream graphInput, List<Train> trains) {
+    public Scheduler(InputStream graphInput, List<Train> trains, boolean toAni) {
         removeList = new LinkedList<>();
         routings = new LinkedList<>();
         graphIn = graphInput;
         now = 0;
-        minimumCost = 0.0;
+        toAnimate = toAni;
+        actualCost = 0.0;
         loadGraph();
         updateQueue = trains;  // these trains are not boostraped yet
         bootstrapTrains();
         calculateOptimalCost();
-        run();
-        printOutput();
+        // printOutput();
     }
 
     private void calculateOptimalCost() {
@@ -141,7 +141,7 @@ public class Scheduler {
     }
 
 
-    public void run() {
+    public void runSimulation() {
         updateQueue.sort(Train.comparator());
 
         while (updateQueue.size() > 0) {
@@ -154,14 +154,18 @@ public class Scheduler {
             }
             now++;
         }
+    }
 
-        // Start animating in a new thread
-        (new Thread(new CustomDraw(router.adj, stations, routings))).start();
+    public void runAnimation() {
+        // Start animation in a separate thread
+        if (toAnimate) {
+            (new Thread(new CustomDraw(router.adj, stations, routings, now, actualCost, optimalCost, strategy.toString()))).start();
+        }
     }
 
 
-    public void done(int time, Train t) {
-        minimumCost += t.cost;
+    public void done(Train t) {
+        actualCost += t.cost;
         removeList.add(t);
     }
 
@@ -178,7 +182,7 @@ public class Scheduler {
         }
         System.out.println();
         System.out.printf("    duration: %d%n", now);
-        System.out.printf(" actual cost: %16.2f%n", minimumCost);
+        System.out.printf(" actual cost: %16.2f%n", actualCost);
         System.out.printf("minimum cost: %16.2f%n", optimalCost);
     }
 

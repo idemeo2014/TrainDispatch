@@ -1,13 +1,5 @@
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.WindowConstants;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
@@ -84,14 +76,25 @@ final class CustomDraw implements Runnable {
     private Map<Integer, Station> stations;
     private Scheduler runningSche;
 
+    // info about the run
+    private JLabel statusLabel;
+    private int duration;
+    private double totalCost;
+    private double minCost;
+    private String strategy;
 
-    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re) {
-        init();
 
+    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re, int t, double actcost, double mcost, String strat) {
+        duration = t;
+        totalCost = actcost;
+        minCost = mcost;
+        strategy = strat;
         adj = a;
         stations = ss;
         record = re;
         sprites = new LinkedList<>();
+
+        init();
 
         double maxX = -1;
         double maxY = -1;
@@ -102,7 +105,7 @@ final class CustomDraw implements Runnable {
             if (currY > maxY) maxY = currY;
         }
 
-        setCanvasSize((int) (560.0 / maxY * maxX) , 560);
+        setCanvasSize((int) (400.0 / maxY * maxX) , 400);
         setXscale(0, maxX);
         setYscale(0, maxY);
     }
@@ -142,8 +145,15 @@ final class CustomDraw implements Runnable {
         // Interface layout
         ImageIcon icon = new ImageIcon(onscreenImage);
         JLabel draw = new JLabel(icon);
-        animationFrame.setContentPane(draw);
+        statusLabel = new JLabel();
+        JPanel drawingPanel = new JPanel();
+        drawingPanel.setLayout(new BoxLayout(drawingPanel, BoxLayout.Y_AXIS));
+        drawingPanel.add(draw);
+        drawingPanel.add(statusLabel);
+
+        animationFrame.setContentPane(drawingPanel);
         animationFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        animationFrame.setMinimumSize(new Dimension(width, height + 40));
         animationFrame.pack();
         animationFrame.setLocationRelativeTo(null);
     }
@@ -156,7 +166,9 @@ final class CustomDraw implements Runnable {
         animationFrame.setVisible(true);
         show(0);
 
-        for (int frameCount = 1, now = 0; !record.isEmpty() || !sprites.isEmpty(); frameCount++) {
+//        for (int frameCount = 1, now = 0; !record.isEmpty() || !sprites.isEmpty(); frameCount++) {
+        for (int frameCount = 1, now = 0; now <= duration; frameCount++) {
+            statusLabel.setText("Strategy: " + "Time: " + now + " / " + duration + "  ");
             clear();
             setPenColor(Color.BLACK);
             drawStations();
@@ -185,7 +197,7 @@ final class CustomDraw implements Runnable {
                 }
             }
 
-            show(80);
+            show(10);
             now++;
 
             // clean up

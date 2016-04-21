@@ -83,6 +83,7 @@ abstract class Train implements Comparable<Train> {
     public void setBoss(Scheduler theBoss) {
         BOSS = theBoss;
     }
+
     public void setState(TrainState st) {
         state = st;
     }
@@ -95,7 +96,7 @@ abstract class Train implements Comparable<Train> {
     // COMPARISON RELATED
     @Override
     public int compareTo(Train b) {
-        return (int) (b.CPT + b.type.timeCost() - this.CPT - this.type.timeCost());
+        return (int) (b.CPT * b.type.timeCost() - this.CPT * this.type.timeCost());
     }
 
     public static Comparator<Train> comparator() {

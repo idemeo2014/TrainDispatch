@@ -14,16 +14,8 @@ public class ImprovedStation extends Station {
     public void willMove(int now, Train t) {
         List<Station> path = t.path;
 
-        //////////////////////////////////////
-//        System.out.printf("willMove %3d at %3d %-15s path= [ ", now, index, t.namae);
-//        for (Station s : path) {
-//            System.out.print(s.index + " ");
-//        }
-//        System.out.println(" ]");
-        //////////////////////////////////////
-
         if (path.size() == 0) {
-            t.BOSS.done(now, t);
+            t.BOSS.done(t);
             return;
         }
 
@@ -43,7 +35,6 @@ public class ImprovedStation extends Station {
 
     @Override
     public void didHeadTo(int station, int now, Train t) {
-//        System.out.printf("%3d departed %-15s %3d -> %3d%n", now, t.namae, index, station);
         Rail connection = adj.get(t.path.get(0).index);
         int tripDuration = connection.timeToTravel(t.length, t.speed);
         t.setState(TrainState.ENROUTE);
@@ -52,7 +43,6 @@ public class ImprovedStation extends Station {
 
     @Override
     public void haveReached(int station, int now, Train t) {
-//        System.out.printf("%3d reached %-15s %3d -> %3d%n", now, t.namae, index, station);
         t.setState(TrainState.IDLE);
         t.update(now);
     }

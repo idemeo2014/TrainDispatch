@@ -1,15 +1,15 @@
 public enum TrainType {
-    A(40),   // priority
-    P(0),    // passenger
-    F(-20);  // freight
+    A(2),     // priority
+    P(1),     // passenger
+    F(0.75);  // freight
 
-    private final int timeCost;
+    private final double timeCost;
 
-    TrainType(int cost) {
+    TrainType(double cost) {
         this.timeCost = cost;
     }
 
-    public int timeCost() {
+    public double timeCost() {
         return this.timeCost;
     }
 

@@ -13,7 +13,7 @@ public class BaselineStation extends Station {
         List<Station> path = t.path();
 
         if (path.size() == 0) {
-            t.BOSS.done(now, t);
+            t.BOSS.done(t);
             return;
         }
 

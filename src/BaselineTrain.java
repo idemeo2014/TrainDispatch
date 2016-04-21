@@ -22,7 +22,7 @@ public class BaselineTrain extends Train {
                 break;
 
             case ENROUTE:
-                BOSS.done(now, this);
+                BOSS.done(this);
                 break;
         }
     }

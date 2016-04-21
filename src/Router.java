@@ -1,24 +1,99 @@
 import java.util.*;
 
-/**
- * Router provides graph related operations
- */
+
 public class Router {
 
     Collection<Rail>[] adj;      // adjacency list
-    private boolean[] marked;    // aux memory for traversing the graph
-    private int[] edgeTo;
+    public final int numVertices;
+    private boolean[] marked;    // markers for bfs
+    private double[] distanceToSource;
+    private int[] vertexTo;
     private Map<Integer, Station> stations;
 
 
     @SuppressWarnings("unchecked")
     public Router(int num_v, Map<Integer, Station> stationMap) {
+        numVertices = num_v;
         stations = stationMap;
-        marked = new boolean[num_v];
-        edgeTo = new int[num_v];
         adj = (Collection<Rail>[]) new Collection<?>[num_v];
         for (int i = 0; i < num_v; i++) {
             adj[i] = new LinkedList<>();
+        }
+    }
+
+
+//    public List<Station> shortest(int from, int to) {
+//        LinkedList<Station> shortestPath = new LinkedList<>();
+//        Arrays.fill(marked, false);
+//        bfs(from);
+//        for (int i = to; i != from; i = edgeTo[i]) {
+//            shortestPath.addFirst(stations.get(i));
+//        }
+//        shortestPath.addFirst(stations.get(from));
+//        return shortestPath;
+//    }
+
+
+    public List<Station> shortest(int from, int to) {
+        LinkedList<Station> shortestPath = new LinkedList<>();
+
+        dijkstra(from);
+
+        for (int i = to; i != from; i = vertexTo[i]) {
+            shortestPath.addFirst(stations.get(i));
+        }
+        shortestPath.addFirst(stations.get(from));
+
+        return shortestPath;
+    }
+
+
+    private void dijkstra(int source) {
+        distanceToSource = new double[numVertices];
+        Arrays.fill(distanceToSource, Double.POSITIVE_INFINITY);
+        distanceToSource[source] = 0.0;
+
+        vertexTo = new int[numVertices];
+        Arrays.fill(vertexTo, -1);
+
+        PriorityQueue<Integer> pq = new PriorityQueue<>(new DijkstraVertexIndexComparator());
+
+        pq.add(source);
+
+        while (!pq.isEmpty()) {
+            int curr = pq.remove();
+
+            System.out.println(distanceToSource[curr]);
+
+            for (Rail r : adj[curr]) {
+                int other = r.other(curr);
+                double newDistance = distanceToSource[curr] + r.railLen;
+                if (newDistance < distanceToSource[other]) {
+                    distanceToSource[other] = newDistance;
+                    vertexTo[other] = curr;
+                    pq.add(other);
+                }
+            }
+        }
+    }
+
+
+    private void bfs(int from) {
+        marked = new boolean[numVertices];
+        vertexTo = new int[numVertices];
+        LinkedList<Integer> queue = new LinkedList<>();
+        marked[from] = true;
+        queue.addLast(from);
+        while (!queue.isEmpty()) {
+            int v = queue.removeFirst();
+            for (Rail rail : adj[v]) {
+                int w = rail.other(v);
+                if (!marked[w]) {
+                    marked[w] = true;
+                    vertexTo[w] = v;
+                    queue.addLast(w);
+                }
+            }
         }
     }
 
@@ -32,6 +107,23 @@ public class Router {
             adj[a].add(newRail);
             adj[b].add(newRail);
         }
+    }
+
+
+    /**
+     * @return the index of the vertex that has max degree
+     */
+    public int maxDegreeVertexIndex() {
+        int maxInd = -1;
+        int maxDeg = -1;
+        for (int i = 0; i < adj.length; i++) {
+            int currSize = adj[i].size();
+            if (currSize > maxDeg) {
+                maxDeg = currSize;
+                maxInd = i;
+            }
+        }
+        return maxInd;
     }
 
 
@@ -77,38 +169,15 @@ public class Router {
     }
 
 
-    public List<Station> shortest(int from, int to) {
-        LinkedList<Station> shortestPath = new LinkedList<>();
-        Arrays.fill(marked, false);
-        bfs(from);
-        for (int i = to; i != from; i = edgeTo[i]) {
-            shortestPath.addFirst(stations.get(i));
-        }
-        shortestPath.addFirst(stations.get(from));
-        return shortestPath;
-    }
-
-
-    private void bfs(int from) {
-        LinkedList<Integer> queue = new LinkedList<>();
-        marked[from] = true;
-        queue.addLast(from);
-        while (!queue.isEmpty()) {
-            int v = queue.removeFirst();
-            for (Rail rail : adj[v]) {
-                int w = rail.other(v);
-                if (!marked[w]) {
-                    marked[w] = true;
-                    edgeTo[w] = v;
-                    queue.addLast(w);
-                }
-            }
-        }
-    }
-
-
     public List<Station> reroute(int from, int to, int ... exclude) {
         return null;
     }
 
+
+    private class DijkstraVertexIndexComparator implements Comparator<Integer> {
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            return Double.compare(distanceToSource[o1], distanceToSource[o2]);
+        }
+    }
 }
