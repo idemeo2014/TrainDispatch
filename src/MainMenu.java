@@ -12,6 +12,7 @@ class MainMenu {
     }
 
     private static void ikuzo() {
+        JFrame menuFrame = new JFrame("Menu");
         JPanel menuPanel = new JPanel();
         menuPanel.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
@@ -135,6 +136,7 @@ class MainMenu {
                         RoutingStrategy.BASELINE, true);
                 sche.runSimulation();
                 sche.runAnimation();
+                menuFrame.requestFocus();
             }
         });
         constraints.gridwidth = 1;
@@ -154,6 +156,7 @@ class MainMenu {
                         RoutingStrategy.IMPROVED, true);
                 sche.runSimulation();
                 sche.runAnimation();
+                menuFrame.requestFocus();
             }
         });
         constraints.gridwidth = 1;
@@ -179,6 +182,7 @@ class MainMenu {
                 sche_two.runSimulation();
                 sche_one.runAnimation();
                 sche_two.runAnimation();
+                menuFrame.requestFocus();
             }
         });
         constraints.gridwidth = 1;
@@ -203,6 +207,7 @@ class MainMenu {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // @TODO
+                menuFrame.requestFocus();
             }
         });
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -219,13 +224,12 @@ class MainMenu {
         menuPanel.add(statsProgBar, constraints);
 
         // Frame setup
-        JFrame menuFrame = new JFrame("Menu");
         menuFrame.add(menuPanel);
         menuFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         menuFrame.setMaximumSize(new Dimension(380, 500));
         menuFrame.pack();
         menuFrame.setLocationRelativeTo(null);
-         menuFrame.setResizable(false);
+        menuFrame.setResizable(false);
         menuFrame.setVisible(true);
     }
 

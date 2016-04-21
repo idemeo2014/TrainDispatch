@@ -105,7 +105,7 @@ final class CustomDraw implements Runnable {
             if (currY > maxY) maxY = currY;
         }
 
-        setCanvasSize((int) (400.0 / maxY * maxX) , 400);
+        setCanvasSize((int) (500.0 / maxY * maxX) , 500);
         setXscale(0, maxX);
         setYscale(0, maxY);
     }
@@ -122,7 +122,7 @@ final class CustomDraw implements Runnable {
     private void init() {
         // animationFrame
         if (animationFrame != null) animationFrame.setVisible(false);
-        animationFrame = new JFrame("Train Dispatch");
+        animationFrame = new JFrame(strategy);
         offscreenImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         onscreenImage  = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         offscreen = offscreenImage.createGraphics();
@@ -155,7 +155,6 @@ final class CustomDraw implements Runnable {
         animationFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         animationFrame.setMinimumSize(new Dimension(width, height + 40));
         animationFrame.pack();
-        animationFrame.setLocationRelativeTo(null);
     }
 
 
@@ -166,9 +165,8 @@ final class CustomDraw implements Runnable {
         animationFrame.setVisible(true);
         show(0);
 
-//        for (int frameCount = 1, now = 0; !record.isEmpty() || !sprites.isEmpty(); frameCount++) {
         for (int frameCount = 1, now = 0; now <= duration; frameCount++) {
-            statusLabel.setText("Strategy: " + "Time: " + now + " / " + duration + "  ");
+            drawStatusBar(now, sprites.size());
             clear();
             setPenColor(Color.BLACK);
             drawStations();
@@ -210,6 +208,11 @@ final class CustomDraw implements Runnable {
             }
         }
 
+    }
+
+    private void drawStatusBar(int t, int numT) {
+        statusLabel.setText(String.format("Cost lower bound: %.2f    Actual cost: %.2f    Time: %d / %d    Moving trains: %d",
+                minCost, totalCost, t, duration, numT));
     }
 
     private void drawStations() {
