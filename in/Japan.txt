@@ -1,0 +1,54 @@
+0 Kagoshima-chuo 1.0 0.5
+1 Shin-Manamata 1.0 1.0
+2 Kumamoto 1.2 1.4
+3 Shin-Omuta 1.1 1.6
+4 Hakata 1.0 2.0
+5 Kokura 1.1 2.2
+6 Tokuyama 2.0 2.4
+7 Hiroshima 2.4 2.5
+8 Fukuyama 3.0 2.5
+9 Okayama 2.2 2.6
+10 Shinkobe 4.1 2.6
+11 Kyoto 4.5 2.9
+12 Nagoya 5.2 3.1
+13 Hamamatsu 5.7 2.4
+14 Shizuako 6.1 2.5
+15 Shinagawa  6.8 3.2
+16 Tokyo 7.0 3.3
+17 Omiya 6.9 3.4
+18 Fukushima 7.4 4.8
+19 Sendai 7.7 5.1
+20 Morioka 7.8 6.3
+21 Shin-Aomon 7.5 7.2
+22 Akita-Shinkansen 7.1 6.3
+23 Yamagata 6.2 5.2
+24 Shinjo 7.2 5.5
+25 Niigata 6.6 4.9
+26 Nagano 6.0 4.1
+
+0 1 -1
+1 2 -1
+2 3 -1
+3 4 -1
+4 5 -1
+5 6 -1
+6 7 -1
+7 8 -1
+8 9 -1
+9 10 -1
+10 11 -1
+11 12 -1
+12 13 -1
+13 14 -1
+14 15 -1
+15 16 -1
+16 17 -1
+17 18 -1
+17 26 -1
+17 25 -1
+18 23 -1
+23 24 -1
+18 19 -1
+19 20 -1
+20 22 -1
+20 21 -1
