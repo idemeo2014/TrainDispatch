@@ -6,9 +6,7 @@ import java.util.Random;
 
 class Playground {
     public static void main(String[] args) {
-        int abc;
-        System.out.println(3);
-//        stats();
+        stats();
 //        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 //        int width = gd.getDisplayMode().getWidth();
 //        int height = gd.getDisplayMode().getHeight();
@@ -34,7 +32,7 @@ class Playground {
         int size = 2000;
         double[] a = new double[size];
         for (int i = 0; i < size; i++) {
-            a[i] = RandomScheduleGenerator.normal(90.0, 5);
+            a[i] = RandomScheduleGenerator.normal(100.0, 5);
         }
 
         double minA = StdStats.min(a);

@@ -13,7 +13,7 @@ Your submission should then have 4 things (please ZIP in one file and submit it)
 
 Here is a rough rubric for each of these parts:
 
-###### PDF Report
+##### PDF Report
 
 - Description on how the system works (2 points)
 - List of algorithms and data structures used (2 points)
@@ -21,7 +21,7 @@ Here is a rough rubric for each of these parts:
 - Performance Analysis (Charts). Comparison between your proposed approach and the base case (15 points). Include explanation of the charts. The charts alone are NOT sufficient.
 - List of references (2 points)
 
-###### Code
+##### Code
 
 - Correct implementation of the base case (benchmark) (10 points)
 - Correct implementation of an alternative solution (20 points)
@@ -30,7 +30,7 @@ Here is a rough rubric for each of these parts:
 
 * Note that if your code does not compile and run you'll get a ZERO in this part.
 
-###### Presentation
+##### Presentation
 
 You should plan to talk for about 15 minutes. Avoid demo the code. Describe how the system works and present the statistical results. A typical presentation structure is: introduction to the problem, description of the solution implemented including motivation, results, demo of the execution.
 

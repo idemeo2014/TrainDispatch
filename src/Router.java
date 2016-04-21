@@ -50,9 +50,6 @@ public class Router {
 
         while (!pq.isEmpty()) {
             int curr = pq.remove();
-
-            System.out.println(distanceToSource[curr]);
-
             for (Rail r : adj[curr]) {
                 int other = r.other(curr);
                 double newDistance = distanceToSource[curr] + r.railLen;

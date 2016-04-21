@@ -5,7 +5,7 @@ import java.awt.event.ActionListener;
 
 class MainMenu {
 
-    private static final String[] AVAILABLE_STAGES = { "US.txt", "CN.txt", "JP.txt" };
+    private static final String[] AVAILABLE_STAGES = { "US.txt", "China.txt", "Japan.txt" };
 
     public static void main(String[] args) {
         ikuzo();

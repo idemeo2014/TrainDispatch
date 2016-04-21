@@ -7,7 +7,9 @@ import java.util.Random;
 class RandomScheduleGenerator {
 
     // Some real-life constants
-    static final double AVG_SPEED = 90.0;
+    static final double AVG_SPEED = 100.0;
+    static final double SPEED_STDEV = 5.0;
+    static final double COST_PER_MILE = 5.0;
 
     // context
     private static Random rgen = new Random();  // @TODO delete 'static'
@@ -98,7 +100,7 @@ class RandomScheduleGenerator {
     }
 
     private double nextSpeed() {
-        return normal(90.0, 5.0);
+        return normal(AVG_SPEED, SPEED_STDEV);
     }
 
     private double nextCpm() {
