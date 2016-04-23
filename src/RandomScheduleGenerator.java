@@ -1,19 +1,22 @@
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 class RandomScheduleGenerator {
 
-    // Some real-life constants
-    static final double AVG_SPEED = 100.0;
-    static final double SPEED_STDEV = 5.0;
+    // constants
+    static final double AVG_SPEED = 3.0;
+    static final double SPEED_STDEV = 1.0;
     static final double AVG_CPM= 5.0;
     static final double CPM_STDEV= 5.0;
+    public static final double AVG_TRAIN_LEN = 1.0;
+    public static final double TRAIN_LEN_STDEV = 0.05;
     static final double COST_PER_MILE = 5.0;
 
     // context
-    private static Random rgen = new Random();  // @TODO delete 'static'
+    private Random rgen;
     private RoutingStrategy strategy;  // used for creating trains
     private int numVertices;
     private int numTrains;
@@ -55,18 +58,19 @@ class RandomScheduleGenerator {
     }
 
     public List<Train> getSchedule() {
-        List<Train> trains = new LinkedList<>();
+        List<Train> trains = new ArrayList<>(numTrains);
 
         while (sentTrains < numTrains) {
             int nextSourceVal = nextSource();
+            TrainType nextType = nextTrainType();
             trains.add(Factory.newTrain(strategy, Integer.toHexString(sentTrains++),
                 nextDepart(),   // uniform. [timeFrame] controls range. [burst] controls clustering
                 nextSourceVal,  // normal, clustered around vertex with max degree. [crowdedness] controls stdev
                 nextDest(nextSourceVal),    // uniform, excludes source index
-                nextTrainType(),  // uniform. [morePTrain] controls cutoff values
+                nextType,  // uniform. [morePTrain] controls cutoff values
                 nextTrainLen(),   // uniform. normal, around an empirical value
                 nextSpeed(),      // normal, flat, based on empirical value.
-                nextCpm(),  //
+                nextCpm(nextType),  //
                 nextCpt()));  //
         }
 
@@ -97,8 +101,8 @@ class RandomScheduleGenerator {
         return normal(AVG_SPEED, SPEED_STDEV);
     }
 
-    private double nextCpm() {
-        return normal(AVG_CPM, SPEED_STDEV);
+    private double nextCpm(TrainType tp) {
+        return normal(AVG_CPM, CPM_STDEV);
     }
 
     private double nextCpt() {
@@ -106,19 +110,22 @@ class RandomScheduleGenerator {
     }
 
     private double nextTrainLen() {
-        return normal(1.0, 0.05);
+        return normal(AVG_TRAIN_LEN, TRAIN_LEN_STDEV);
     }
 
     private TrainType nextTrainType() {
-        double v = rgen.nextDouble();
-        if (v > morePTrain) return TrainType.P;
-        else                return TrainType.F;
+        double v = uniform(0, 256);
+        if (v < morePTrain) {
+            return TrainType.P;
+        } else {
+            return TrainType.F;
+        }
     }
 
     /**
      * Normal dist with values outside 3 sigma cut off
      */
-    public static double normal(double avg, double stdev) {
+    public double normal(double avg, double stdev) {
         double candidate = rgen.nextGaussian() * stdev + avg;
         while  (candidate < avg - 3 * stdev || candidate > avg + 3 * stdev) {
             candidate = rgen.nextGaussian() * stdev + avg;
@@ -129,7 +136,7 @@ class RandomScheduleGenerator {
     /**
      * Uniform int between min (inclusive) and max (exclusive)
      */
-    public static int uniform(int min, int max) {
+    public int uniform(int min, int max) {
         return rgen.nextInt(max - min) + min;
     }
 

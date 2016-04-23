@@ -1,4 +1,12 @@
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.PriorityQueue;
 
 
 public class Router {
@@ -22,6 +30,9 @@ public class Router {
     }
 
 
+    /**
+     * @return list of station [from, step2, step3 ... destination]
+     */
     public List<Station> shortest(int from, int to) {
         LinkedList<Station> shortestPath = new LinkedList<>();
 

@@ -1,11 +1,27 @@
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.WindowConstants;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.RenderingHints;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -72,8 +88,10 @@ final class CustomDraw implements Runnable {
     private Collection<Rail>[] adj;
     private List<RoutingRecord> record;
     private List<TrainSprite> sprites;
-    private Map<Integer, Station> stations;
-    private Scheduler runningSche;
+
+    private String[] stationNames;
+    private double[] locationCoords;
+    private Double[] edgeCoords;
 
     // info about the run
     private JLabel statusLabel;
@@ -82,7 +100,7 @@ final class CustomDraw implements Runnable {
     private double minCost;
     private String strategy;
     private int realTimeSeconds;
-
+    private boolean keepRunning;
 
     CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re, int t, double actcost, double mcost, String strat, int realSec) {
         duration = t;
@@ -90,25 +108,53 @@ final class CustomDraw implements Runnable {
         minCost = mcost;
         strategy = strat;
         adj = a;
-        stations = ss;
         record = re;
         realTimeSeconds = realSec;
         sprites = new LinkedList<>();
+        keepRunning = true;
 
+        // process stations into location array for faster performance
+        int numOfStations = ss.values().size();
+        stationNames = new String[numOfStations];
+        locationCoords = new double[2 * numOfStations];
+
+        for (int nameIndex = 0, locIndex = 0, index = 0; index < numOfStations; index++) {
+            Station curr = ss.get(index);
+            stationNames[nameIndex++] = curr.name;
+            locationCoords[locIndex++] = curr.location.x;
+            locationCoords[locIndex++] = curr.location.y;
+        }
+
+        // process stations to get max X and Y coordinates in order to set canvas size
         double maxX = -1;
         double maxY = -1;
-        for (Station st : stations.values()) {
+        for (Station st : ss.values()) {
             double currX = st.location.x;
             double currY = st.location.y;
             if (currX > maxX) maxX = currX;
             if (currY > maxY) maxY = currY;
         }
 
+        // process edges into array for performance
+        ArrayList<Double> coordsList = new ArrayList<>();
+        for (Collection<Rail> rails : adj) {
+            for (Rail rail : rails) {
+                Location kore = ss.get(rail.kore).location;
+                Location sore = ss.get(rail.sore).location;
+                coordsList.add(kore.x);
+                coordsList.add(kore.y);
+                coordsList.add(sore.x);
+                coordsList.add(sore.y);
+            }
+        }
+        edgeCoords = new Double[1];
+        edgeCoords = coordsList.toArray(edgeCoords);
+
         GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        // int screenWidth = gd.getDisplayMode().getWidth();
         int screenHeight = gd.getDisplayMode().getHeight();
 
         setCanvasSize((int) (screenHeight / 2.0 / maxY * maxX), (int) (screenHeight / 2.0));
+        // init() has been called by setCanvasSize
         setXscale(0, maxX);
         setYscale(0, maxY);
     }
@@ -118,7 +164,60 @@ final class CustomDraw implements Runnable {
     @Override
     public void run() {
         record.sort(RoutingRecord.comparator());
-        animate();
+
+        LinkedList<RoutingRecord> recordRemoveList = new LinkedList<>();
+        LinkedList<TrainSprite> spriteRemoveList = new LinkedList<>();
+
+        int millisPerFrame = (int) Math.ceil(1000.0 / duration * realTimeSeconds);
+        if (millisPerFrame < 10) {
+            millisPerFrame = 0;
+        }
+
+        int now = 0;
+        animationFrame.setVisible(true);
+        show(0);
+
+        while (keepRunning && now <= duration) {
+            System.out.printf("%s %d\r", Thread.currentThread().getName(), now);
+            drawStatusBar(now, sprites.size());
+            clear();
+            setPenColor(Color.BLACK);
+            drawStations();
+            drawEdges();
+            setPenColor(Color.RED);
+
+            // add new sprites
+            for (RoutingRecord r : record) {
+                if (r.timeStart != now) break;
+
+                sprites.add(new TrainSprite(r.trainName,
+                        locationCoords[r.from * 2], locationCoords[r.from * 2 + 1],
+                        locationCoords[r.to * 2], locationCoords[r.to * 2 + 1],
+                        r.timeStart, r.timeEnd));
+                recordRemoveList.add(r);
+            }
+
+            // process existing sprites
+            for (TrainSprite s : sprites) {
+                if (s.timeEnd == now) {
+                    spriteRemoveList.add(s);
+                } else {
+                    s.drawSelf(now);
+                }
+            }
+
+            show(millisPerFrame);
+            now++;
+
+            // Cleanup processed data
+            for (RoutingRecord rec : recordRemoveList) {
+                record.remove(rec);
+            }
+
+            for (TrainSprite sp : spriteRemoveList) {
+                sprites.remove(sp);
+            }
+        }
     }
 
 
@@ -152,84 +251,36 @@ final class CustomDraw implements Runnable {
         drawingPanel.add(draw);
         drawingPanel.add(statusLabel);
 
-        animationFrame.setContentPane(drawingPanel);
         animationFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        animationFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                keepRunning = false;
+            }
+        });
+
+        animationFrame.setContentPane(drawingPanel);
         animationFrame.setMinimumSize(new Dimension(width, height + 40));
         animationFrame.pack();
-    }
-
-
-    private void animate() {
-        LinkedList<RoutingRecord> recordRemoveList = new LinkedList<>();
-        LinkedList<TrainSprite> spriteRemoveList = new LinkedList<>();
-
-        int millisPerFrame = (int) Math.ceil(1000.0 / duration * realTimeSeconds);
-        int now = 0;
-        animationFrame.setVisible(true);
-        show(0);
-
-        while (now <= duration) {
-            drawStatusBar(now, sprites.size());
-            clear();
-            setPenColor(Color.BLACK);
-            drawStations();
-            drawEdges();
-
-            setPenColor(Color.RED);
-
-            // add new sprites
-            for (RoutingRecord r : record) {
-                if (r.timeStart == now) {
-                    sprites.add(new TrainSprite(r.trainName,
-                            stations.get(r.from).location, stations.get(r.to).location,
-                            r.timeStart, r.timeEnd));
-                    recordRemoveList.add(r);
-                }
-            }
-
-            // process existing sprites
-            for (TrainSprite s : sprites) {
-                if (s.timeEnd == now) {
-                    spriteRemoveList.add(s);
-                } else {
-                    s.drawSelf(now);
-                }
-            }
-
-            show(millisPerFrame);
-            now++;
-
-            // Cleanup processed data
-            for (RoutingRecord rec : recordRemoveList) {
-                record.remove(rec);
-            }
-
-            for (TrainSprite sp : spriteRemoveList) {
-                sprites.remove(sp);
-            }
-        }
-
+        animationFrame.setResizable(false);
     }
 
     private void drawStatusBar(int t, int numT) {
-        statusLabel.setText(String.format("Cost lower bound: %.2f    Actual cost: %.2f    Time: %d / %d    Moving trains: %d",
+        statusLabel.setText(String.format("Lower bound: %.2f    Actual: %.2f    Time: %d / %d    Moving trains: %d",
                 minCost, totalCost, t, duration, numT));
     }
 
     private void drawStations() {
-        for (Station station : stations.values()) {
-            text(station.location.x, station.location.y, station.name);
+        for (int i = 0; i < stationNames.length; i++) {
+            text(locationCoords[2*i], locationCoords[2*i+1], stationNames[i]);
         }
     }
 
     private void drawEdges() {
         setPenRadius(0.001);
-        for (Collection<Rail> rails : adj) {
-            for (Rail rail : rails) {
-                Location kore = stations.get(rail.kore).location;
-                Location sore = stations.get(rail.sore).location;
-                line(kore.x, kore.y, sore.x, sore.y);
-            }
+        int i = 0;
+        while (i < edgeCoords.length) {
+            line(edgeCoords[i++], edgeCoords[i++], edgeCoords[i++], edgeCoords[i++]);
         }
     }
 
@@ -824,33 +875,30 @@ final class CustomDraw implements Runnable {
         animationFrame.repaint();
     }
 
+
     private class TrainSprite {
         String name;
-        Location from;
-        double currX;
-        double currY;
+        double fromX;
+        double fromY;
         int timeStart;
         int timeEnd;
         double rangeX;
         double rangeY;
 
-        TrainSprite(String nm, Location f, Location t, int tS, int tE) {
+        TrainSprite(String nm, double fx, double fy, double tx, double ty, int tS, int tE) {
             name = nm;
-            from = f;
+            fromX = fx;
+            fromY = fy;
             timeStart = tS;
             timeEnd = tE;
-            currX = f.x;
-            currY = f.y;
-            rangeX = t.x - f.x;
-            rangeY = t.y - f.y;
+            rangeX = tx - fx;
+            rangeY = ty - fy;
         }
 
         void drawSelf(int now) {
-            double ratio = ((double) now - timeStart) / (timeEnd - timeStart);
-            currX = from.x + ratio * rangeX;
-            currY = from.y + ratio * rangeY;
+            double progress = (now - timeStart) / (double) (timeEnd - timeStart);
             setFont(MONO_BOLD);
-            text(currX, currY, name);
+            text(fromX + progress * rangeX, fromY + progress * rangeY, name);
             setFont();
         }
     }

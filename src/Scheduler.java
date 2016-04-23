@@ -30,7 +30,7 @@ public class Scheduler {
     public void calculateOptimalCost() {
         optimalCost = 0.0;
         for (Train train : updateQueue) {
-            double shortestPathLength = router.pathTotalLength(train.path) + train.path.size() * train.length;
+            double shortestPathLength = router.pathTotalLength(train.path) + (train.path.size()-1) * train.length;
             optimalCost += shortestPathLength * train.CPM;
         }
     }
@@ -49,7 +49,7 @@ public class Scheduler {
             now++;
         }
 
-        printOutput();
+         // printOutput();
     }
 
     public void runAnimation(String strategyName, int realTimeDuration) {
@@ -63,6 +63,14 @@ public class Scheduler {
 
     public void moved(int timeStart, int timeEnd, Train t, int from, int to) {
         routings.add(new RoutingRecord(timeStart, timeEnd, t.namae, from, to));
+    }
+
+    public double getOptimalCost() {
+        return optimalCost;
+    }
+
+    public double getActualCost() {
+        return actualCost;
     }
 
     private void printOutput() {

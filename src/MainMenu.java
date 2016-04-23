@@ -19,11 +19,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+
 class MainMenu {
 
     private static final String[] AVAILABLE_STAGES = { "US.txt", "China.txt", "Japan.txt" };
-    public static final String STR_BASELINE = "STR_BASELINE";
-    public static final String STR_IMPROVED = "STR_IMPROVED";
+    public static final String STR_BASELINE = "Baseline";
+    public static final String STR_IMPROVED = "Improved";
 
     // shared access
     private static JComboBox<String> stagesCombox;
@@ -36,6 +37,9 @@ class MainMenu {
     private static JSlider timeSlider;
     private static JSlider speedVarSlider;
     private static JSlider compSlider;
+    private static JProgressBar progressBar;
+    private static JTextField aniDurTextField;
+    private static JLabel statusLabel;
 
     private static Router router;
     private static List<Train> updateQueue;
@@ -98,9 +102,9 @@ class MainMenu {
         constraints.gridwidth = 1;
         constraints.gridx = 0;
         constraints.gridy = 3;
-        menuPanel.add(new JLabel("Dispatch Time Frame"), constraints);
+        menuPanel.add(new JLabel("Departure Time Frame"), constraints);
 
-        timeTextField = new JTextField("100");
+        timeTextField = new JTextField("20");
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridwidth = 2;
         constraints.gridx = 1;
@@ -113,6 +117,7 @@ class MainMenu {
         menuPanel.add(new JLabel("Burst"), constraints);
 
         burstSlider = new JSlider(0, 255);
+        burstSlider.setValue(0);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 4;
@@ -124,6 +129,7 @@ class MainMenu {
         menuPanel.add(new JLabel("Crowdedness"), constraints);
 
         crowdSlider = new JSlider(0, 255);
+        crowdSlider.setValue(0);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 5;
@@ -132,9 +138,10 @@ class MainMenu {
         // Time Sensitive
         constraints.gridx = 0;
         constraints.gridy = 6;
-        menuPanel.add(new JLabel("Time Sensitivity"), constraints);
+        menuPanel.add(new JLabel("Time worth"), constraints);
 
         timeSlider = new JSlider(0, 255);
+        timeSlider.setValue(30);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 6;
@@ -146,6 +153,7 @@ class MainMenu {
         menuPanel.add(new JLabel("Speed Variance"), constraints);
 
         speedVarSlider = new JSlider(0, 255);
+        speedVarSlider.setValue(0);
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridx = 1;
         constraints.gridy = 7;
@@ -154,7 +162,7 @@ class MainMenu {
         // Composition
         constraints.gridx = 0;
         constraints.gridy = 8;
-        menuPanel.add(new JLabel("Train Composition"), constraints);
+        menuPanel.add(new JLabel("P Train Ratio"), constraints);
 
         compSlider = new JSlider(0, 255);
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -168,7 +176,7 @@ class MainMenu {
         constraints.gridy = 9;
         menuPanel.add(new JLabel("Animation duration"), constraints);
 
-        JTextField aniDurTextField = new JTextField("10");
+        aniDurTextField = new JTextField("10");
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridwidth = 2;
         constraints.gridx = 1;
@@ -193,14 +201,8 @@ class MainMenu {
         runBaseButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                RoutingStrategy st = RoutingStrategy.BASELINE;
-                loadGraph(streamFromBox(stagesCombox), st);
-                loadTrains(st);
-                Scheduler sche = new Scheduler(router, stations, updateQueue);
-                bootstrapTrains(sche);
-                sche.calculateOptimalCost();
-                sche.runSimulation();
-                sche.runAnimation(STR_BASELINE, getIntVal(aniDurTextField));
+                progressBar.setValue(0);
+                (new Thread(new SingleAnimationRunner(RoutingStrategy.BASELINE))).start();
             }
         });
         constraints.gridwidth = 1;
@@ -213,14 +215,8 @@ class MainMenu {
         runImpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                RoutingStrategy st = RoutingStrategy.IMPROVED;
-                loadGraph(streamFromBox(stagesCombox), st);
-                loadTrains(st);
-                Scheduler sche = new Scheduler(router, stations, updateQueue);
-                bootstrapTrains(sche);
-                sche.calculateOptimalCost();
-                sche.runSimulation();
-                sche.runAnimation(STR_IMPROVED, getIntVal(aniDurTextField));
+                progressBar.setValue(0);
+                (new Thread(new SingleAnimationRunner(RoutingStrategy.IMPROVED))).start();
             }
         });
         constraints.gridwidth = 1;
@@ -233,22 +229,8 @@ class MainMenu {
         runCompButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
-                loadTrains(RoutingStrategy.IMPROVED);
-                Scheduler sche_improved = new Scheduler(router, stations, updateQueue);
-                bootstrapTrains(sche_improved);
-                sche_improved.calculateOptimalCost();
-                sche_improved.runSimulation();
-
-                loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
-                loadTrains(RoutingStrategy.BASELINE);
-                Scheduler sche_base = new Scheduler(router, stations, updateQueue);
-                bootstrapTrains(sche_base);
-                sche_base.calculateOptimalCost();
-                sche_base.runSimulation();
-
-                sche_improved.runAnimation(STR_IMPROVED, getIntVal(aniDurTextField));
-                sche_base.runAnimation(STR_BASELINE, getIntVal(aniDurTextField));
+                progressBar.setValue(0);
+                (new Thread(new ComparisonAnimationRunner())).start();
             }
         });
         constraints.gridwidth = 1;
@@ -273,7 +255,7 @@ class MainMenu {
         runStatsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // @TODO
+
             }
         });
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -282,17 +264,24 @@ class MainMenu {
         constraints.gridy = 13;
         menuPanel.add(runStatsButton, constraints);
 
-        // Progress bar for statistics
-        JProgressBar statsProgBar = new JProgressBar();
+        // Progress bar
+        progressBar = new JProgressBar();
         constraints.gridwidth = 3;
         constraints.gridx = 0;
         constraints.gridy = 14;
-        menuPanel.add(statsProgBar, constraints);
+        menuPanel.add(progressBar, constraints);
+
+        // status label
+        statusLabel = new JLabel("Done");
+        constraints.gridwidth = 3;
+        constraints.gridx = 0;
+        constraints.gridy = 15;
+        menuPanel.add(statusLabel, constraints);
 
         // Frame setup
         menuFrame.add(menuPanel);
         menuFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        menuFrame.setMaximumSize(new Dimension(380, 500));
+        menuFrame.setMaximumSize(new Dimension(380, 520));
         menuFrame.pack();
         menuFrame.setLocationRelativeTo(null);
         menuFrame.setResizable(false);
@@ -341,6 +330,10 @@ class MainMenu {
         }
     }
 
+    /**
+     * Use the random schedule generator with current parameters to produce a new
+     * schedule which is saved in updateQueue
+     */
     private static void loadTrains(RoutingStrategy st) {
         RandomScheduleGenerator gen = new RandomScheduleGenerator(stations.size(),
                 getIntVal(trainsTextField), getIntVal(timeTextField), st, getLongVal(seedValTextfield));
@@ -352,6 +345,10 @@ class MainMenu {
         updateQueue = gen.getSchedule();
     }
 
+    /**
+     * Assign to the trains currently in updateQueue their shortest paths,
+     * and the scheduler they should report to.
+     */
     private static void bootstrapTrains(Scheduler sche) {
         for (Train train : updateQueue) {
             train.setPath(router.shortest(train.fromInd, train.toInd));
@@ -369,5 +366,80 @@ class MainMenu {
 
     private static InputStream streamFromBox(JComboBox<String> cb) {
         return MainMenu.class.getResourceAsStream(cb.getItemAt(cb.getSelectedIndex()));
+    }
+
+    private static class SingleAnimationRunner implements Runnable {
+        private Scheduler runnerSche;
+        private int aniDur;
+
+        SingleAnimationRunner(RoutingStrategy strat) {
+            statusLabel.setText("Generating");
+            aniDur = getIntVal(aniDurTextField);
+            loadGraph(streamFromBox(stagesCombox), strat);
+            loadTrains(strat);
+            runnerSche = new Scheduler(router, stations, updateQueue);
+        }
+
+        @Override
+        public void run() {
+            progressBar.setValue(40);
+            statusLabel.setText("Running shortest path");
+            bootstrapTrains(runnerSche);
+            runnerSche.calculateOptimalCost();
+            statusLabel.setText("Running simulation");
+            runnerSche.runSimulation();
+            progressBar.setValue(90);
+            runnerSche.runAnimation(STR_BASELINE, aniDur);
+            statusLabel.setText("Done");
+            progressBar.setValue(100);
+        }
+    }
+
+    private static class ComparisonAnimationRunner implements Runnable {
+        private Scheduler base_sche;
+        private Scheduler impd_sche;
+        private int aniDur;
+
+        ComparisonAnimationRunner() {
+            aniDur = getIntVal(aniDurTextField);
+
+            statusLabel.setText("Generating");
+            loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
+            loadTrains(RoutingStrategy.BASELINE);
+            base_sche = new Scheduler(router, stations, updateQueue);
+            statusLabel.setText("Running shortest path");
+            bootstrapTrains(base_sche);
+
+            statusLabel.setText("Generating");
+            loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
+            loadTrains(RoutingStrategy.IMPROVED);
+            impd_sche = new Scheduler(router, stations, updateQueue);
+            statusLabel.setText("Running shortest path");
+            bootstrapTrains(impd_sche);
+        }
+
+        @Override
+        public void run() {
+            progressBar.setValue(40);
+            base_sche.calculateOptimalCost();
+            progressBar.setValue(60);
+            impd_sche.calculateOptimalCost();
+            statusLabel.setText("Running simulation");
+            base_sche.runSimulation();
+            impd_sche.runSimulation();
+            progressBar.setValue(80);
+            base_sche.runAnimation(STR_BASELINE, aniDur);
+            impd_sche.runAnimation(STR_IMPROVED, aniDur);
+            statusLabel.setText("Done");
+            progressBar.setValue(100);
+        }
+    }
+
+    private static class StatisticsRunner implements Runnable {
+
+        @Override
+        public void run() {
+
+        }
     }
 }

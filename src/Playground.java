@@ -32,7 +32,7 @@ class Playground {
         int size = 2000;
         double[] a = new double[size];
         for (int i = 0; i < size; i++) {
-            a[i] = RandomScheduleGenerator.normal(100.0, 5);
+            a[i] = normal(3.0, 10);
         }
 
         double minA = StdStats.min(a);
@@ -44,5 +44,14 @@ class Playground {
         System.out.printf("       var %10.3f\n", StdStats.var(a));
         System.out.printf("   stddevp %10.3f\n", StdStats.stddevp(a));
         System.out.printf("      varp %10.3f\n", StdStats.varp(a));
+    }
+
+    private static double normal(double avg, double stdev) {
+        Random rrr = new Random();
+        double candidate = rrr.nextGaussian() * stdev + avg;
+        while  (candidate < avg - 3 * stdev || candidate > avg + 3 * stdev) {
+            candidate = rrr.nextGaussian() * stdev + avg;
+        }
+        return candidate;
     }
 }
