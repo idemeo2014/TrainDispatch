@@ -373,7 +373,6 @@ class MainMenu {
         private int aniDur;
 
         SingleAnimationRunner(RoutingStrategy strat) {
-            statusLabel.setText("Generating");
             aniDur = getIntVal(aniDurTextField);
             loadGraph(streamFromBox(stagesCombox), strat);
             loadTrains(strat);
@@ -407,14 +406,11 @@ class MainMenu {
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
             loadTrains(RoutingStrategy.BASELINE);
             base_sche = new Scheduler(router, stations, updateQueue);
-            statusLabel.setText("Running shortest path");
             bootstrapTrains(base_sche);
 
-            statusLabel.setText("Generating");
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
             loadTrains(RoutingStrategy.IMPROVED);
             impd_sche = new Scheduler(router, stations, updateQueue);
-            statusLabel.setText("Running shortest path");
             bootstrapTrains(impd_sche);
         }
 
@@ -437,9 +433,31 @@ class MainMenu {
 
     private static class StatisticsRunner implements Runnable {
 
+        StatisticsRunner() {
+
+        }
+
         @Override
         public void run() {
 
+        }
+    }
+
+    private static class StatsRunRecord {
+        public final long seed;
+        public final double minCost;
+        public final double baseCost;
+        public final double impdCost;
+        public final int baseDuration;
+        public final int impdDuration;
+
+        StatsRunRecord(long seed, double minCost, double baseCost, double impdCost, int baseDuration, int impdDuration) {
+            this.seed = seed;
+            this.minCost = minCost;
+            this.baseCost = baseCost;
+            this.impdCost = impdCost;
+            this.baseDuration = baseDuration;
+            this.impdDuration = impdDuration;
         }
     }
 }

@@ -1,31 +1,13 @@
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.WindowConstants;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.RenderingHints;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.geom.Arc2D;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -60,7 +42,7 @@ final class CustomDraw implements Runnable {
     private double penRadius;
 
     // we drawSelf immediately or wait until next run?
-    private boolean defer = false;
+    // private boolean defer = false;
 
     // boundary of drawing canvas, 5 %
     private final double BORDER = 0.05;
@@ -78,7 +60,7 @@ final class CustomDraw implements Runnable {
     private Font font;
 
     // double buffered graphics
-    private BufferedImage offscreenImage, onscreenImage;
+    private BufferedImage offscreenImage, onscreenImage, railwayBufferedImage;
     private Graphics2D offscreen, onscreen;
 
     // the animationFrame for drawing to the screen
@@ -86,12 +68,10 @@ final class CustomDraw implements Runnable {
 
     // Graph related
     private Collection<Rail>[] adj;
-    private List<RoutingRecord> record;
-    private List<TrainSprite> sprites;
-
-    private String[] stationNames;
-    private double[] locationCoords;
-    private Double[] edgeCoords;
+    private List<RoutingRecord> records;
+    private Map<Integer, Station> stations;
+    private Map<String, TrainSprite> sprites;
+    private List<TrainSprite> spriteRemoveList;
 
     // info about the run
     private JLabel statusLabel;
@@ -107,23 +87,12 @@ final class CustomDraw implements Runnable {
         totalCost = actcost;
         minCost = mcost;
         strategy = strat;
+        stations = ss;
         adj = a;
-        record = re;
+        records = re;
         realTimeSeconds = realSec;
-        sprites = new LinkedList<>();
+        sprites = new TreeMap<>();
         keepRunning = true;
-
-        // process stations into location array for faster performance
-        int numOfStations = ss.values().size();
-        stationNames = new String[numOfStations];
-        locationCoords = new double[2 * numOfStations];
-
-        for (int nameIndex = 0, locIndex = 0, index = 0; index < numOfStations; index++) {
-            Station curr = ss.get(index);
-            stationNames[nameIndex++] = curr.name;
-            locationCoords[locIndex++] = curr.location.x;
-            locationCoords[locIndex++] = curr.location.y;
-        }
 
         // process stations to get max X and Y coordinates in order to set canvas size
         double maxX = -1;
@@ -135,21 +104,6 @@ final class CustomDraw implements Runnable {
             if (currY > maxY) maxY = currY;
         }
 
-        // process edges into array for performance
-        ArrayList<Double> coordsList = new ArrayList<>();
-        for (Collection<Rail> rails : adj) {
-            for (Rail rail : rails) {
-                Location kore = ss.get(rail.kore).location;
-                Location sore = ss.get(rail.sore).location;
-                coordsList.add(kore.x);
-                coordsList.add(kore.y);
-                coordsList.add(sore.x);
-                coordsList.add(sore.y);
-            }
-        }
-        edgeCoords = new Double[1];
-        edgeCoords = coordsList.toArray(edgeCoords);
-
         GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         int screenHeight = gd.getDisplayMode().getHeight();
 
@@ -160,63 +114,33 @@ final class CustomDraw implements Runnable {
     }
 
 
-    // Entry point
     @Override
     public void run() {
-        record.sort(RoutingRecord.comparator());
-
-        LinkedList<RoutingRecord> recordRemoveList = new LinkedList<>();
-        LinkedList<TrainSprite> spriteRemoveList = new LinkedList<>();
+        records.sort(RoutingRecord.comparator());
+        spriteRemoveList = new ArrayList<>();
 
         int millisPerFrame = (int) Math.ceil(1000.0 / duration * realTimeSeconds);
         if (millisPerFrame < 10) {
             millisPerFrame = 0;
         }
 
+        loadRailwayBufferedImage();
+
         int now = 0;
         animationFrame.setVisible(true);
-        show(0);
 
+        // @TODO use thread interruption instead of custom flag
         while (keepRunning && now <= duration) {
-            System.out.printf("%s %d\r", Thread.currentThread().getName(), now);
-            drawStatusBar(now, sprites.size());
             clear();
-            setPenColor(Color.BLACK);
-            drawStations();
-            drawEdges();
+            drawStatusBar(now, sprites.size());
+
+            addNewSprites(now);
             setPenColor(Color.RED);
-
-            // add new sprites
-            for (RoutingRecord r : record) {
-                if (r.timeStart != now) break;
-
-                sprites.add(new TrainSprite(r.trainName,
-                        locationCoords[r.from * 2], locationCoords[r.from * 2 + 1],
-                        locationCoords[r.to * 2], locationCoords[r.to * 2 + 1],
-                        r.timeStart, r.timeEnd));
-                recordRemoveList.add(r);
-            }
-
-            // process existing sprites
-            for (TrainSprite s : sprites) {
-                if (s.timeEnd == now) {
-                    spriteRemoveList.add(s);
-                } else {
-                    s.drawSelf(now);
-                }
-            }
+            drawSprites(now);
+            cleanup();
 
             show(millisPerFrame);
             now++;
-
-            // Cleanup processed data
-            for (RoutingRecord rec : recordRemoveList) {
-                record.remove(rec);
-            }
-
-            for (TrainSprite sp : spriteRemoveList) {
-                sprites.remove(sp);
-            }
         }
     }
 
@@ -265,22 +189,68 @@ final class CustomDraw implements Runnable {
         animationFrame.setResizable(false);
     }
 
+    private void loadRailwayBufferedImage() {
+        setPenColor(Color.BLACK);
+        drawStations();
+        drawEdges();
+        railwayBufferedImage = deepCopy(offscreenImage);
+    }
+
+    private void addNewSprites(int now) {
+        // add new sprites
+        Iterator<RoutingRecord> recordsItr = records.iterator();
+        while (recordsItr.hasNext()) {
+            RoutingRecord r = recordsItr.next();
+            if (r.timeStart != now) break;
+
+            Location fromLoc = stations.get(r.from).location;
+            Location toLoc   = stations.get(r.to).location;
+
+            sprites.put(r.trainName, new TrainSprite(r.trainName,
+                    fromLoc.x, fromLoc.y, toLoc.x, toLoc.y,
+                    r.timeStart, r.timeEnd));
+
+            recordsItr.remove();
+        }
+    }
+
+    private void drawSprites(int now) {
+        // process existing sprites
+        for (TrainSprite s : sprites.values()) {
+            if (s.timeEnd == now) {
+                spriteRemoveList.add(s);
+            } else {
+                s.drawSelf(now);
+            }
+        }
+    }
+
+
+    private void cleanup() {
+        for (TrainSprite sp : spriteRemoveList) {
+            sprites.remove(sp.name);
+        }
+        spriteRemoveList.clear();
+    }
+
     private void drawStatusBar(int t, int numT) {
         statusLabel.setText(String.format("Lower bound: %.2f    Actual: %.2f    Time: %d / %d    Moving trains: %d",
                 minCost, totalCost, t, duration, numT));
     }
 
     private void drawStations() {
-        for (int i = 0; i < stationNames.length; i++) {
-            text(locationCoords[2*i], locationCoords[2*i+1], stationNames[i]);
-        }
+        for (Station station : stations.values())
+            text(station.location.x, station.location.y, station.name);
     }
 
     private void drawEdges() {
         setPenRadius(0.001);
-        int i = 0;
-        while (i < edgeCoords.length) {
-            line(edgeCoords[i++], edgeCoords[i++], edgeCoords[i++], edgeCoords[i++]);
+        for (Collection<Rail> rails : adj) {
+            for (Rail rail : rails) {
+                Location kore = stations.get(rail.kore).location;
+                Location sore = stations.get(rail.sore).location;
+                line(kore.x, kore.y, sore.x, sore.y);
+            }
         }
     }
 
@@ -406,7 +376,9 @@ final class CustomDraw implements Runnable {
         offscreen.setColor(color);
         offscreen.fillRect(0, 0, width, height);
         offscreen.setColor(penColor);
-        draw();
+
+        // draw the railway
+        offscreen.drawImage(railwayBufferedImage, 0, 0, null);
     }
 
     /**
@@ -488,11 +460,6 @@ final class CustomDraw implements Runnable {
         font = f;
     }
 
-
-    /*************************************************************************
-     *  Drawing geometric shapes.
-     *************************************************************************/
-
     /**
      * Draw a line from (x0, y0) to (x1, y1).
      *
@@ -503,263 +470,7 @@ final class CustomDraw implements Runnable {
      */
     private void line(double x0, double y0, double x1, double y1) {
         offscreen.draw(new Line2D.Double(scaleX(x0), scaleY(y0), scaleX(x1), scaleY(y1)));
-        draw();
     }
-
-    /**
-     * Draw one pixel at (x, y).
-     *
-     * @param x the x-coordinate of the pixel
-     * @param y the y-coordinate of the pixel
-     */
-    private void pixel(double x, double y) {
-        offscreen.fillRect((int) Math.round(scaleX(x)), (int) Math.round(scaleY(y)), 1, 1);
-    }
-
-    /**
-     * Draw a point at (x, y).
-     *
-     * @param x the x-coordinate of the point
-     * @param y the y-coordinate of the point
-     */
-    private void point(double x, double y) {
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double r = penRadius;
-        float scaledPenRadius = (float) (r * DEFAULT_SIZE);
-
-        // double ws = factorX(2*r);
-        // double hs = factorY(2*r);
-        // if (ws <= 1 && hs <= 1) pixel(x, y);
-        if (scaledPenRadius <= 1) pixel(x, y);
-        else offscreen.fill(new Ellipse2D.Double(xs - scaledPenRadius / 2, ys - scaledPenRadius / 2,
-                scaledPenRadius, scaledPenRadius));
-        draw();
-    }
-
-    /**
-     * Draw a circle of radius r, centered on (x, y).
-     *
-     * @param x the x-coordinate of the center of the circle
-     * @param y the y-coordinate of the center of the circle
-     * @param r the radius of the circle
-     * @throws IllegalArgumentException if the radius of the circle is negative
-     */
-    private void circle(double x, double y, double r) {
-        if (r < 0) throw new IllegalArgumentException("circle radius must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * r);
-        double hs = factorY(2 * r);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.draw(new Ellipse2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw filled circle of radius r, centered on (x, y).
-     *
-     * @param x the x-coordinate of the center of the circle
-     * @param y the y-coordinate of the center of the circle
-     * @param r the radius of the circle
-     * @throws IllegalArgumentException if the radius of the circle is negative
-     */
-    private void filledCircle(double x, double y, double r) {
-        if (r < 0) throw new IllegalArgumentException("circle radius must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * r);
-        double hs = factorY(2 * r);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.fill(new Ellipse2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-
-    /**
-     * Draw an ellipse with given semimajor and semiminor axes, centered on (x, y).
-     *
-     * @param x             the x-coordinate of the center of the ellipse
-     * @param y             the y-coordinate of the center of the ellipse
-     * @param semiMajorAxis is the semimajor axis of the ellipse
-     * @param semiMinorAxis is the semiminor axis of the ellipse
-     * @throws IllegalArgumentException if either of the axes are negative
-     */
-    private void ellipse(double x, double y, double semiMajorAxis, double semiMinorAxis) {
-        if (semiMajorAxis < 0) throw new IllegalArgumentException("ellipse semimajor axis must be nonnegative");
-        if (semiMinorAxis < 0) throw new IllegalArgumentException("ellipse semiminor axis must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * semiMajorAxis);
-        double hs = factorY(2 * semiMinorAxis);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.draw(new Ellipse2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw an ellipse with given semimajor and semiminor axes, centered on (x, y).
-     *
-     * @param x             the x-coordinate of the center of the ellipse
-     * @param y             the y-coordinate of the center of the ellipse
-     * @param semiMajorAxis is the semimajor axis of the ellipse
-     * @param semiMinorAxis is the semiminor axis of the ellipse
-     * @throws IllegalArgumentException if either of the axes are negative
-     */
-    private void filledEllipse(double x, double y, double semiMajorAxis, double semiMinorAxis) {
-        if (semiMajorAxis < 0) throw new IllegalArgumentException("ellipse semimajor axis must be nonnegative");
-        if (semiMinorAxis < 0) throw new IllegalArgumentException("ellipse semiminor axis must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * semiMajorAxis);
-        double hs = factorY(2 * semiMinorAxis);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.fill(new Ellipse2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-
-    /**
-     * Draw an arc of radius r, centered on (x, y), from angle1 to angle2 (in degrees).
-     *
-     * @param x      the x-coordinate of the center of the circle
-     * @param y      the y-coordinate of the center of the circle
-     * @param r      the radius of the circle
-     * @param angle1 the starting angle. 0 would mean an arc beginning at 3 o'clock.
-     * @param angle2 the angle at the end of the arc. For example, if
-     *               you want a 90 degree arc, then angle2 should be angle1 + 90.
-     * @throws IllegalArgumentException if the radius of the circle is negative
-     */
-    private void arc(double x, double y, double r, double angle1, double angle2) {
-        if (r < 0) throw new IllegalArgumentException("arc radius must be nonnegative");
-        while (angle2 < angle1) angle2 += 360;
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * r);
-        double hs = factorY(2 * r);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.draw(new Arc2D.Double(xs - ws / 2, ys - hs / 2, ws, hs, angle1, angle2 - angle1, Arc2D.OPEN));
-        draw();
-    }
-
-    /**
-     * Draw a square of side length 2r, centered on (x, y).
-     *
-     * @param x the x-coordinate of the center of the square
-     * @param y the y-coordinate of the center of the square
-     * @param r radius is half the length of any side of the square
-     * @throws IllegalArgumentException if r is negative
-     */
-    private void square(double x, double y, double r) {
-        if (r < 0) throw new IllegalArgumentException("square side length must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * r);
-        double hs = factorY(2 * r);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.draw(new Rectangle2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw a filled square of side length 2r, centered on (x, y).
-     *
-     * @param x the x-coordinate of the center of the square
-     * @param y the y-coordinate of the center of the square
-     * @param r radius is half the length of any side of the square
-     * @throws IllegalArgumentException if r is negative
-     */
-    private void filledSquare(double x, double y, double r) {
-        if (r < 0) throw new IllegalArgumentException("square side length must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * r);
-        double hs = factorY(2 * r);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.fill(new Rectangle2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw a rectangle of given half width and half height, centered on (x, y).
-     *
-     * @param x          the x-coordinate of the center of the rectangle
-     * @param y          the y-coordinate of the center of the rectangle
-     * @param halfWidth  is half the width of the rectangle
-     * @param halfHeight is half the height of the rectangle
-     * @throws IllegalArgumentException if halfWidth or halfHeight is negative
-     */
-    private void rectangle(double x, double y, double halfWidth, double halfHeight) {
-        if (halfWidth < 0) throw new IllegalArgumentException("half width must be nonnegative");
-        if (halfHeight < 0) throw new IllegalArgumentException("half height must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * halfWidth);
-        double hs = factorY(2 * halfHeight);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.draw(new Rectangle2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw a filled rectangle of given half width and half height, centered on (x, y).
-     *
-     * @param x          the x-coordinate of the center of the rectangle
-     * @param y          the y-coordinate of the center of the rectangle
-     * @param halfWidth  is half the width of the rectangle
-     * @param halfHeight is half the height of the rectangle
-     * @throws IllegalArgumentException if halfWidth or halfHeight is negative
-     */
-    private void filledRectangle(double x, double y, double halfWidth, double halfHeight) {
-        if (halfWidth < 0) throw new IllegalArgumentException("half width must be nonnegative");
-        if (halfHeight < 0) throw new IllegalArgumentException("half height must be nonnegative");
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        double ws = factorX(2 * halfWidth);
-        double hs = factorY(2 * halfHeight);
-        if (ws <= 1 && hs <= 1) pixel(x, y);
-        else offscreen.fill(new Rectangle2D.Double(xs - ws / 2, ys - hs / 2, ws, hs));
-        draw();
-    }
-
-    /**
-     * Draw a polygon with the given (x[i], y[i]) coordinates.
-     *
-     * @param x an array of all the x-coordindates of the polygon
-     * @param y an array of all the y-coordindates of the polygon
-     */
-    private void polygon(double[] x, double[] y) {
-        int N = x.length;
-        GeneralPath path = new GeneralPath();
-        path.moveTo((float) scaleX(x[0]), (float) scaleY(y[0]));
-        for (int i = 0; i < N; i++)
-            path.lineTo((float) scaleX(x[i]), (float) scaleY(y[i]));
-        path.closePath();
-        offscreen.draw(path);
-        draw();
-    }
-
-    /**
-     * Draw a filled polygon with the given (x[i], y[i]) coordinates.
-     *
-     * @param x an array of all the x-coordindates of the polygon
-     * @param y an array of all the y-coordindates of the polygon
-     */
-    private void filledPolygon(double[] x, double[] y) {
-        int N = x.length;
-        GeneralPath path = new GeneralPath();
-        path.moveTo((float) scaleX(x[0]), (float) scaleY(y[0]));
-        for (int i = 0; i < N; i++)
-            path.lineTo((float) scaleX(x[i]), (float) scaleY(y[i]));
-        path.closePath();
-        offscreen.fill(path);
-        draw();
-    }
-
-
-    /*************************************************************************
-     *  Drawing text.
-     *************************************************************************/
 
     /**
      * Write the given text string in the current font, centered on (x, y).
@@ -776,62 +487,7 @@ final class CustomDraw implements Runnable {
         int ws = metrics.stringWidth(s);
         int hs = metrics.getDescent();
         offscreen.drawString(s, (float) (xs - ws / 2.0), (float) (ys + hs));
-        draw();
     }
-
-    /**
-     * Write the given text string in the current font, centered on (x, y) and
-     * rotated by the specified number of degrees
-     *
-     * @param x       the center x-coordinate of the text
-     * @param y       the center y-coordinate of the text
-     * @param s       the text
-     * @param degrees is the number of degrees to rotate counterclockwise
-     */
-    private void text(double x, double y, String s, double degrees) {
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        offscreen.rotate(Math.toRadians(-degrees), xs, ys);
-        text(x, y, s);
-        offscreen.rotate(Math.toRadians(+degrees), xs, ys);
-    }
-
-
-    /**
-     * Write the given text string in the current font, left-aligned at (x, y).
-     *
-     * @param x the x-coordinate of the text
-     * @param y the y-coordinate of the text
-     * @param s the text
-     */
-    private void textLeft(double x, double y, String s) {
-        offscreen.setFont(font);
-        FontMetrics metrics = offscreen.getFontMetrics();
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        int hs = metrics.getDescent();
-        offscreen.drawString(s, (float) (xs), (float) (ys + hs));
-        draw();
-    }
-
-    /**
-     * Write the given text string in the current font, right-aligned at (x, y).
-     *
-     * @param x the x-coordinate of the text
-     * @param y the y-coordinate of the text
-     * @param s the text
-     */
-    private void textRight(double x, double y, String s) {
-        offscreen.setFont(font);
-        FontMetrics metrics = offscreen.getFontMetrics();
-        double xs = scaleX(x);
-        double ys = scaleY(y);
-        int ws = metrics.stringWidth(s);
-        int hs = metrics.getDescent();
-        offscreen.drawString(s, (float) (xs - ws), (float) (ys + hs));
-        draw();
-    }
-
 
     /**
      * Display on screen, pause for t milliseconds, and turn on
@@ -847,32 +503,24 @@ final class CustomDraw implements Runnable {
      * @param t number of milliseconds
      */
     private void show(int t) {
-        defer = false;
         draw();
         try {
             Thread.sleep(t);
         } catch (InterruptedException e) {
             System.out.println("Error sleeping");
         }
-        defer = true;
     }
 
-    /**
-     * Display on-screen and turn off animation mode:
-     * subsequent calls to
-     * drawing methods such as <tt>line()</tt>, <tt>circle()</tt>, and <tt>square()</tt>
-     * will be displayed on screen when called. This is the default.
-     */
-    private void show() {
-        defer = false;
-        draw();
-    }
-
-    // drawSelf onscreen if defer is false
     private void draw() {
-        if (defer) return;
         onscreen.drawImage(offscreenImage, 0, 0, null);
         animationFrame.repaint();
+    }
+
+    private static BufferedImage deepCopy(BufferedImage original) {
+        ColorModel cm = original.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = original.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
     }
 
 

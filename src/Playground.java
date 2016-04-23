@@ -6,7 +6,8 @@ import java.util.Random;
 
 class Playground {
     public static void main(String[] args) {
-        stats();
+//        stats();
+        System.out.println(Double.MAX_VALUE);
 //        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 //        int width = gd.getDisplayMode().getWidth();
 //        int height = gd.getDisplayMode().getHeight();

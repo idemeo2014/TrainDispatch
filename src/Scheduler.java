@@ -1,15 +1,12 @@
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class Scheduler {
 
     private Router router;
     private Map<Integer, Station> stations;        // Map from name to index
-    private List<Train> updateQueue;               // The order for updating train states
-    private Collection<Train> removeList;          // Trains to be removed after this clock tick
+    private SortedMap<String, Train> updateQueue;               // The order for updating train states
+    private Collection<String> removeList;          // Trains to be removed after this clock tick
     private List<RoutingRecord> routings;    // Actual routing records
     private double optimalCost;
     private double actualCost;
@@ -22,34 +19,44 @@ public class Scheduler {
         actualCost = 0.0;
         router = rt;
         stations = sts;
-        updateQueue = uq;
         removeList = new LinkedList<>();
         routings = new LinkedList<>();
+
+        updateQueue = new TreeMap<>();
+        for (Train train : uq) {
+            updateQueue.put(train.namae, train);
+        }
     }
 
     public void calculateOptimalCost() {
         optimalCost = 0.0;
-        for (Train train : updateQueue) {
+        for (Train train : updateQueue.values()) {
             double shortestPathLength = router.pathTotalLength(train.path) + (train.path.size()-1) * train.length;
             optimalCost += shortestPathLength * train.CPM;
         }
     }
 
     public void runSimulation() {
-        updateQueue.sort(Train.comparator());
-
         while (updateQueue.size() > 0) {
-            for (Train trainToRemove : removeList) {
-                updateQueue.remove(trainToRemove);
-            }
-            removeList.clear();
-            for (Train t : updateQueue) {
-                if (t.departTime <= now) t.update(now);
-            }
+            removeTrains();
+            updateTrains();
             now++;
         }
 
          // printOutput();
+    }
+
+    private void removeTrains() {
+        for (String trainToRemove : removeList) {
+            updateQueue.remove(trainToRemove);
+        }
+        removeList.clear();
+    }
+
+    private void updateTrains() {
+        for (Train t : updateQueue.values()) {
+            if (t.departTime <= now) t.update(now);
+        }
     }
 
     public void runAnimation(String strategyName, int realTimeDuration) {
@@ -58,7 +65,7 @@ public class Scheduler {
 
     public void done(Train t) {
         actualCost += t.cost;
-        removeList.add(t);
+        removeList.add(t.namae);
     }
 
     public void moved(int timeStart, int timeEnd, Train t, int from, int to) {
