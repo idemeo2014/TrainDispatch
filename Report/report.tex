@@ -1,34 +1,50 @@
 \documentclass[letterpaper, 12pt]{article}
-% \usepackage[bindingoffset=0.2in,left=1.5in,right=1.5in,top=1.5in,bottom=1.5in,footskip=.25in]{geometry}
+\usepackage{graphicx}
+\graphicspath{ {../assets/} }
+\usepackage[backend=bibtex]{biblatex}
+\addbibresource{report.bib}
 
-\title{\hfill \\ \hfill \\ Experiment 3 \\ Capacitance and Capacitors \\ \hfill \\ {\fontsize{45}{30}\selectfont PHY 2092-E16}} % Title
-\author{Tiangang \textsc{Chen}}    % Author name
-\date{\today}                      % Date for the report
+\title{Train Dispatch Simulation Project Report}
+\author{Tiangang Chen}
+\date{April 22 2016}
 
 \begin{document}
-
 \maketitle
+\tableofcontents
+\clearpage
 
-\section{Introduction}
-In this experiment, the capacitance of a cable of an electrometer was measured. Different capacitors were connected in series and parallel to study the resulting equivalent capacitance. Lastly, the relationship between voltage and distance of parallel plate capacitor was
+\section{How the System Works}
+\subsection{Modeling the Problem}
+The railway system is abstracted as an undirected weighted graph where the vertices represent stations and the edges represent rails. Each edge is treated as a single railroad. That is, although the edges are undirected, at any given time, all the trains on the same rail must go toward the same direction or a collision will happen.
 
-\section{Data Analysis}
+The solution takes the following information about each train to be scheduled as input: its physical properties, its source station, its destination station, and its departure time. The solution outputs a list of instructions in which each entry contains the following information: the train, the station that the train should be leaving, the time when the train should leave, and the station that the train should be heading to. Each train is guaranteed to be routed to its expected destination station safely by following the instructions in this list.
+
+\subsection{State Machine Perspective}
+Our approach to this problem is based on viewing the train from the perspective of a deterministic finite state machine.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{Train-States}
+\caption{The state transition diagram of a train}
+\end{figure}
+
+\subsection{Routing Algorithm Implementation}
+\subsection{The Rest of the Code}
+
+\section{Performance Analysis}
+\subsection{Definition of Performance}
+
+\subsection{Implementation Comparison}
+
+\subsection{Empirical Comparison}
+
+\section{Algorithms and Data Structures Used}
+\section{Weekly Log}
 
 \clearpage
-\section{Discussion}
-
-Normally, a capacitor consists of two pieces of conductor put close together with insulators in between. When electric potential difference is applied to the two pieces, charge will collect on both surfaces, forming an electric field to store the energy.
-
-When capacitors are connected in series, the charge on each one is the same, and the voltage should add up to the voltage of the circuit. When in parallel, the voltage should be the same while the charges add up to the circuit equivalent. With $C=\frac{Q}{V}$, it can be predicted that
-\[\frac{1}{C_{series}} =\frac{1}{C_1} + \frac{1}{C_2} +\dots; \; C_{parallel} = C_1 + C_2+\dots\]
-
-
-The major error came from random error in measurement. The analog electrometer was the biggest obstacle since it did not give precise value and was unstable. The result of 110.85 pF in part 1 was very close to the nominal value of 112.11 pF. In part 2, each capacitor had ± 10\% intrinsic random error in the labeled value. But the measured values were used in calculation. And the data supported our prediction of the characteristics of series and parallel connection. In part three, the electrometer readings became unstable, resulting in very large random errors in measurements of voltage. The graph reflected ratio of consecutive measurements and required much accuracy, which we failed to achieve with analog electrometer. The resulting graph was not meaningful in the sense of physics.
-
-
-\section{Conclusion}
-
-The capacitance of an electrometer cable was successfully measured in this lab. The obtained data also supports the prediction on series and parallel-connected capacitors. Due to random error in measurements, the third part of the lab was a failure.
-
-
+\nocite{*}
+\printbibliography[
+  heading=bibintoc,
+  title={References}
+]
 \end{document}

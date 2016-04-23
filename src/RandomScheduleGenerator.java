@@ -1,4 +1,3 @@
-import org.junit.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -9,6 +8,8 @@ class RandomScheduleGenerator {
     // Some real-life constants
     static final double AVG_SPEED = 100.0;
     static final double SPEED_STDEV = 5.0;
+    static final double AVG_CPM= 5.0;
+    static final double CPM_STDEV= 5.0;
     static final double COST_PER_MILE = 5.0;
 
     // context
@@ -16,7 +17,6 @@ class RandomScheduleGenerator {
     private RoutingStrategy strategy;  // used for creating trains
     private int numVertices;
     private int numTrains;
-    private int maxDegVxInd;
     private long customSeed;
     private int timeFrame;       // time limit for all trains to depart
 
@@ -32,12 +32,11 @@ class RandomScheduleGenerator {
     private int lastChosenDepartTime;
     private int lastChosenSourceInd;
 
-    public RandomScheduleGenerator(int nv, int nt, int tf, int mdvInd, RoutingStrategy st, long cuseed) {
+    public RandomScheduleGenerator(int nv, int nt, int tf, RoutingStrategy st, long cuseed) {
         // context
         strategy = st;
         numVertices = nv;
         numTrains = nt;
-        maxDegVxInd = mdvInd;
         customSeed = cuseed;
         timeFrame = tf;
 
@@ -52,12 +51,7 @@ class RandomScheduleGenerator {
         // variable init
         sentTrains = 0;
         lastChosenDepartTime = 0;
-
-        if (cuseed == -1) {
-            rgen = new Random();
-        } else {
-            rgen = new Random(cuseed);
-        }
+        rgen = new Random(cuseed);
     }
 
     public List<Train> getSchedule() {
@@ -104,11 +98,11 @@ class RandomScheduleGenerator {
     }
 
     private double nextCpm() {
-        return 20.0;
+        return normal(AVG_CPM, SPEED_STDEV);
     }
 
     private double nextCpt() {
-        return normal(timeSense, timeSense * 0.01);
+        return timeSense;
     }
 
     private double nextTrainLen() {

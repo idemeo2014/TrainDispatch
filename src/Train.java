@@ -5,11 +5,11 @@ abstract class Train implements Comparable<Train> {
 
     // PHYSICAL PROPERTIES
     public final String namae;
-    public final int departTime;        // Moment the train sets off
+    public final int departTime;       // Moment the train sets off
     public final int fromInd;
     public final int toInd;
     public final double speed;         // mph
-    public final double length;           // Length
+    public final double length;        // Length
     public final double CPM;           // cost per mile
     public final double CPT;           // cost per idle tick
     public final TrainType type;       // train category
@@ -58,14 +58,12 @@ abstract class Train implements Comparable<Train> {
         CPT = costPerIdleTick;
     }
 
-
     /**
      * Core method for Train.
      * Give this train a syncing clock for taking actions according to its state.
      * @param now current master clock timeStart
      */
     public abstract void update(int now);
-
 
     public void addCost(int time, double distance) {
         cost += CPT * time;

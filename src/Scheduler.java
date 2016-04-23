@@ -1,145 +1,39 @@
-import java.io.InputStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 public class Scheduler {
 
-    private InputStream graphIn;
-    private InputStream trainIn;
-
-    private RoutingStrategy strategy;
     private Router router;
     private Map<Integer, Station> stations;        // Map from name to index
     private List<Train> updateQueue;               // The order for updating train states
     private Collection<Train> removeList;          // Trains to be removed after this clock tick
-    private LinkedList<RoutingRecord> routings;    // Actual routing records
+    private List<RoutingRecord> routings;    // Actual routing records
     private double optimalCost;
     private double actualCost;
     private int now;                               // The master clock
     private boolean toAnimate;
 
-    public Scheduler(InputStream graphInput, InputStream trainInput, RoutingStrategy strat, boolean toAni) {
-        removeList = new LinkedList<>();
-        routings = new LinkedList<>();
-        graphIn = graphInput;
-        trainIn = trainInput;
-        strategy = strat;
-        toAnimate = toAni;
+
+    public Scheduler(Router rt, Map<Integer, Station> sts, List<Train> uq) {
         now = 0;
         actualCost = 0.0;
-        loadGraph();
-        loadTrains();
-        calculateOptimalCost();
-        // printOutput();
-    }
-
-    public Scheduler(InputStream graphInput, List<Train> trains, boolean toAni) {
+        router = rt;
+        stations = sts;
+        updateQueue = uq;
         removeList = new LinkedList<>();
         routings = new LinkedList<>();
-        graphIn = graphInput;
-        now = 0;
-        toAnimate = toAni;
-        actualCost = 0.0;
-        loadGraph();
-        updateQueue = trains;  // these trains are not boostraped yet
-        bootstrapTrains();
-        calculateOptimalCost();
-        // printOutput();
     }
 
-    private void calculateOptimalCost() {
+    public void calculateOptimalCost() {
         optimalCost = 0.0;
         for (Train train : updateQueue) {
             double shortestPathLength = router.pathTotalLength(train.path) + train.path.size() * train.length;
             optimalCost += shortestPathLength * train.CPM;
         }
     }
-
-    private void loadGraph() {
-        Scanner in = new Scanner(graphIn);
-        int stationCount = in.nextInt();
-
-        stations = new HashMap<>(stationCount);
-        router = new Router(stationCount, stations);
-        
-        // Read stations
-        for (int i = 0; i < stationCount; i++) {
-            int nextInd = in.nextInt();
-            String stationName = in.next();
-            Location loc = new Location(in.nextDouble(), in.nextDouble());
-            stations.put(nextInd, Factory.newStation(strategy, stationName, nextInd, loc, router));
-        }
-        
-        // Read edges
-        int edgeCount = in.nextInt();
-        for (int i = 0; i < edgeCount; i++) {
-            int from = in.nextInt();
-            int to   = in.nextInt();
-            double weight = in.nextDouble();
-        
-            if (weight < 0) { // calculate according to coordinates
-                Station fromStat = stations.get(from);
-                Station toStat   = stations.get(to);
-                double fX = fromStat.location.x;
-                double tX = toStat.location.x;
-                double fY = fromStat.location.y;
-                double tY = toStat.location.y;
-        
-                weight = Math.sqrt(Math.pow(fX-tX,2) + Math.pow(fY-tY,2));
-            }
-        
-            router.addEdge(from, to, weight);
-        }
-        
-        // Set adj list for each station
-        for (Station s : stations.values()) {
-            s.setAdjMap(router.getAdjMap(s.index));
-        }
-
-        in.close();
-    }
-
-    
-    private void loadTrains() {
-        Scanner scin = new Scanner(trainIn);
-        int trainCount = scin.nextInt();
-
-        updateQueue = new ArrayList<>(trainCount);
-
-        for (int i = 0; i < trainCount; i++) {
-            String name = scin.next();
-            int departTime = scin.nextInt();
-            int from = scin.nextInt();
-            int to = scin.nextInt();
-            TrainType type = TrainType.valueOf(scin.next());
-
-            Train newTrain = Factory.newTrain(strategy,
-                    name,
-                    departTime,
-                    from,
-                    to,
-                    type,
-                    scin.nextDouble(),
-                    scin.nextDouble(),
-                    scin.nextDouble(),
-                    scin.nextDouble());
-
-            updateQueue.add(newTrain);
-            newTrain.setPath(router.shortest(from, to));
-            newTrain.setBoss(this);
-        }
-
-        scin.close();
-    }
-
-
-    private void bootstrapTrains() {
-        for (Train train : updateQueue) {
-            train.setPath(router.shortest(train.fromInd, train.toInd));
-            train.setBoss(this);
-        }
-    }
-
 
     public void runSimulation() {
         updateQueue.sort(Train.comparator());
@@ -154,26 +48,22 @@ public class Scheduler {
             }
             now++;
         }
+
+        printOutput();
     }
 
-    public void runAnimation() {
-        // Start animation in a separate thread
-        if (toAnimate) {
-            (new Thread(new CustomDraw(router.adj, stations, routings, now, actualCost, optimalCost, strategy.toString()))).start();
-        }
+    public void runAnimation(String strategyName, int realTimeDuration) {
+        (new Thread(new CustomDraw(router.adj, stations, routings, now, actualCost, optimalCost, strategyName, realTimeDuration))).start();
     }
-
 
     public void done(Train t) {
         actualCost += t.cost;
         removeList.add(t);
     }
 
-
     public void moved(int timeStart, int timeEnd, Train t, int from, int to) {
         routings.add(new RoutingRecord(timeStart, timeEnd, t.namae, from, to));
     }
-
 
     private void printOutput() {
         routings.sort(RoutingRecord.comparator());
