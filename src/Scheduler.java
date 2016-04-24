@@ -59,8 +59,8 @@ public class Scheduler {
         }
     }
 
-    public void runAnimation(String strategyName, int realTimeDuration) {
-        (new Thread(new CustomDraw(router.adj, stations, routings, now, actualCost, optimalCost, strategyName, realTimeDuration))).start();
+    public void runAnimation(String strategyName, int realTimeDuration, boolean halfSize) {
+        (new Thread(new CustomDraw(router.adj, stations, routings, now, actualCost, optimalCost, strategyName, realTimeDuration, halfSize))).start();
     }
 
     public void done(Train t) {

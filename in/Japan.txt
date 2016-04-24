@@ -1,32 +1,31 @@
-<<<<<<< HEAD
 0.966
 26
-0 Kagoshima-chuo 100 -20
-1 Shin-Manamata 90 -70
-2 Kumamoto 110 -100
-3 Shin-Omuta 100 -130
-4 Hakata 100 -160
-5 Kokura 130 -180
-6 Tokuyama 180 -190
-7 Hiroshima 220 -210
-8 Shinkobe 380 -220
-9 Kyoto 420 -240
-10 Nagoya 480 -260
-11 Hamamatsu 530 -220
-12 Shizuako 570 -230
-13 Tokyo 660 -280
-14 Omiya 640 -300
-15 Fukushima 690 -430
-16 Sendai 710 -470
-17 Morioka 710 -570
-18 Shin-Aomori 690 -640
-19 Akita-Shinkansen 660 -640
-20 Yamagata 670 -460
-21 Shinjo 680 -500
-22 Niigata 610 -440
-23 Nagano 560 -350
-24 Takasaki 600 -330
-25 Toyama 500 -360
+0 Kagoshima-chuo 100 20
+1 Shin-Manamata 90 70
+2 Kumamoto 110 100
+3 Shin-Omuta 100 130
+4 Hakata 100 160
+5 Kokura 130 180
+6 Tokuyama 180 190
+7 Hiroshima 220 210
+8 Shinkobe 380 220
+9 Kyoto 420 240
+10 Nagoya 480 260
+11 Hamamatsu 530 220
+12 Shizuako 570 230
+13 Tokyo 660 280
+14 Omiya 640 300
+15 Fukushima 690 430
+16 Sendai 710 470
+17 Morioka 710 570
+18 Shin-Aomori 690 640
+19 Akita-Shinkansen 660 640
+20 Yamagata 670 460
+21 Shinjo 680 500
+22 Niigata 610 440
+23 Nagano 560 350
+24 Takasaki 600 330
+25 Toyama 500 360
 25
 0 1 -1
 1 2 -1
@@ -37,7 +36,7 @@
 6 7 -1
 7 8 -1
 8 9 -1
-9 10-1
+9 10 -1
 10 11 -1
 11 12 -1
 12 13 -1

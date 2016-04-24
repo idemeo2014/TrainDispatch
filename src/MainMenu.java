@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -397,7 +398,7 @@ class MainMenu implements PropertyChangeListener {
             bootstrapTrains(runnerSche);
             publish("Running simulation");
             runnerSche.runSimulation();
-            runnerSche.runAnimation(STR_BASELINE, aniDur);
+            runnerSche.runAnimation(STR_BASELINE, aniDur, false);
             return null;
         }
 
@@ -436,8 +437,8 @@ class MainMenu implements PropertyChangeListener {
             base_sche.runSimulation();
             impd_sche.runSimulation();
 
-            base_sche.runAnimation(STR_BASELINE, aniDur);
-            impd_sche.runAnimation(STR_IMPROVED, aniDur);
+            base_sche.runAnimation(STR_BASELINE, aniDur, true);
+            impd_sche.runAnimation(STR_IMPROVED, aniDur, true);
 
             publish("Done");
 
@@ -474,12 +475,12 @@ class MainMenu implements PropertyChangeListener {
 
         @Override
         protected Void doInBackground() throws Exception {
-            String csvFilename = String.format("./results-%s.csv", dateStr);
+            String csvFilename = String.format("results-%s.csv", dateStr);
 
             writeContextFile();
 
             setProgress(0);
-            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvFilename))) {
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvFilename))) {  // @TODO able to write within jar
                 for (int i = 0; i < trials; i++) {
                     setProgress((int) (i * 100.0 / trials));
                     loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
@@ -529,7 +530,7 @@ class MainMenu implements PropertyChangeListener {
             contextObj.put("passengerTrainRatio", timeSlider.getValue());
             contextObj.put("speedVar", speedVarSlider.getValue());
 
-            String outputFilename = String.format("./context-%s.json", dateStr);
+            String outputFilename = String.format("context-%s.json", dateStr);
             try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFilename))) {
                 writer.write(contextObj.toString(2));
             } catch (IOException e) {

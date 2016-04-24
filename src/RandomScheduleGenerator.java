@@ -97,15 +97,15 @@ class RandomScheduleGenerator {
         return candidate;
     }
 
-    private double nextSpeed() {
+    private double nextSpeed() {  // @TODO implement this!!!
         return normal(AVG_SPEED, SPEED_STDEV);
     }
 
-    private double nextCpm(TrainType tp) {
+    private double nextCpm(TrainType tp) {  // @TODO implement this!!!
         return normal(AVG_CPM, CPM_STDEV);
     }
 
-    private double nextCpt() {
+    private double nextCpt() {  // @TODO implement this!!!
         return timeSense;
     }
 
@@ -113,7 +113,7 @@ class RandomScheduleGenerator {
         return normal(AVG_TRAIN_LEN, TRAIN_LEN_STDEV);
     }
 
-    private TrainType nextTrainType() {
+    private TrainType nextTrainType() {  // @TODO implement this!!!
         double v = uniform(0, 256);
         if (v < morePTrain) {
             return TrainType.P;

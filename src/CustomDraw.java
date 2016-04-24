@@ -82,7 +82,7 @@ final class CustomDraw implements Runnable {
     private int realTimeSeconds;
     private boolean keepRunning;
 
-    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re, int t, double actcost, double mcost, String strat, int realSec) {
+    CustomDraw(Collection<Rail>[] a, Map<Integer, Station> ss, List<RoutingRecord> re, int t, double actcost, double mcost, String strat, int realSec, boolean halfSize) {
         duration = t;
         totalCost = actcost;
         minCost = mcost;
@@ -104,11 +104,17 @@ final class CustomDraw implements Runnable {
             if (currY > maxY) maxY = currY;
         }
 
-        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        int screenHeight = gd.getDisplayMode().getHeight();
+        if (halfSize) {
+            GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            int screenHeight = gd.getDisplayMode().getHeight();
 
-        setCanvasSize((int) (screenHeight / 2.0 / maxY * maxX), (int) (screenHeight / 2.0));
-        // init() has been called by setCanvasSize
+            setCanvasSize((int) (screenHeight / 2.0 / maxY * maxX), (int) (screenHeight / 2.0));
+            // init() has been called by setCanvasSize
+        } else {
+            setCanvasSize((int) (500 / maxY * maxX), 500);
+            // init() has been called by setCanvasSize
+        }
+
         setXscale(0, maxX);
         setYscale(0, maxY);
     }
