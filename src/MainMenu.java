@@ -151,7 +151,7 @@ public class MainMenu implements PropertyChangeListener {
         // Time Sensitive
         constraints.gridx = 0;
         constraints.gridy = 6;
-        menuPanel.add(new JLabel("Time worth"), constraints);
+        menuPanel.add(new JLabel("Time Worth"), constraints);
 
         timeSlider = new JSlider(0, 255);
         timeSlider.setValue(30);
@@ -187,7 +187,7 @@ public class MainMenu implements PropertyChangeListener {
         constraints.gridwidth = 1;
         constraints.gridx = 0;
         constraints.gridy = 9;
-        menuPanel.add(new JLabel("Animation duration"), constraints);
+        menuPanel.add(new JLabel("Animation Duration"), constraints);
 
         aniDurTextField = new JTextField("10");
         constraints.fill = GridBagConstraints.HORIZONTAL;

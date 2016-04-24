@@ -13,7 +13,6 @@ class Router {
 
     Collection<Rail>[] adj;      // adjacency list
     public final int numVertices;
-    private boolean[] marked;    // markers for bfs
     private double[] distanceToSource;
     private int[] vertexTo;
     private Map<Integer, Station> stations;
@@ -72,38 +71,6 @@ class Router {
             }
         }
     }
-
-
-//    public List<Station> shortest(int from, int to) {
-//        LinkedList<Station> shortestPath = new LinkedList<>();
-//        Arrays.fill(marked, false);
-//        bfs(from);
-//        for (int i = to; i != from; i = edgeTo[i]) {
-//            shortestPath.addFirst(stations.get(i));
-//        }
-//        shortestPath.addFirst(stations.get(from));
-//        return shortestPath;
-//    }
-//
-//    private void bfs(int from) {
-//        marked = new boolean[numVertices];
-//        vertexTo = new int[numVertices];
-//        LinkedList<Integer> queue = new LinkedList<>();
-//        marked[from] = true;
-//        queue.addLast(from);
-//        while (!queue.isEmpty()) {
-//            int v = queue.removeFirst();
-//            for (Rail rail : adj[v]) {
-//                int w = rail.other(v);
-//                if (!marked[w]) {
-//                    marked[w] = true;
-//                    vertexTo[w] = v;
-//                    queue.addLast(w);
-//                }
-//            }
-//        }
-//    }
-
 
     public void addEdge(int a, int b, double weight) {
         int kore =     a < b ? a : b;  // assign kore the lower index
