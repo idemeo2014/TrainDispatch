@@ -38,6 +38,10 @@ class MainMenu implements PropertyChangeListener {
     private static JTextField aniDurTextField;
     private static JLabel statusLabel;
 
+    private static Router router;
+    private static List<Train> updateQueue;
+    private static Map<Integer, Station> stations;
+
     private static MainMenu mainMenu = new MainMenu();
     private MainMenu() {}
 
@@ -287,7 +291,7 @@ class MainMenu implements PropertyChangeListener {
         menuFrame.setVisible(true);
     }
 
-    private static void loadGraph(InputStream inSt, RoutingStrategy strategy, Router router, Map<Integer, Station> stations) {
+    private static void loadGraph(InputStream inSt, RoutingStrategy strategy) {
         Scanner in = new Scanner(inSt);
         double mapScale = in.nextDouble();
         int stationCount = in.nextInt();
@@ -330,10 +334,25 @@ class MainMenu implements PropertyChangeListener {
     }
 
     /**
+     * Use the random schedule generator with current parameters to produce a new
+     * schedule which is saved in updateQueue
+     */
+    private static void loadTrains(RoutingStrategy st, long seed) {
+        RandomScheduleGenerator gen = new RandomScheduleGenerator(stations.size(),
+                getIntVal(trainsTextField), getIntVal(timeFrameTextField), st, seed);
+        gen.setBurst(burstSlider.getValue());
+        gen.setCompositionRatio(compSlider.getValue());
+        gen.setCrowdedness(crowdSlider.getValue());
+        gen.setSpeedVar(speedVarSlider.getValue());
+        gen.setTimeSensitivity(timeSlider.getValue());
+        updateQueue = gen.getSchedule();
+    }
+
+    /**
      * Assign to the trains currently in updateQueue their shortest paths,
      * and the scheduler they should report to.
      */
-    private static void bootstrapTrains(Scheduler sche, List<Train> updateQueue, Router router) {
+    private static void bootstrapTrains(Scheduler sche) {
         for (Train train : updateQueue) {
             train.setPath(router.shortest(train.fromInd, train.toInd));
             train.setBoss(sche);
@@ -363,36 +382,20 @@ class MainMenu implements PropertyChangeListener {
     private static class SingleAnimationRunner extends SwingWorker<Void, String> {
         private Scheduler runnerSche;
         private int aniDur;
-        private RoutingStrategy strat;
-        private RandomScheduleGenerator gen;
 
-        private Router router;
-        private List<Train> updateQueue;
-        private Map<Integer, Station> stations;
 
-        SingleAnimationRunner(RoutingStrategy strat, long seed) {
-            loadGraph(streamFromBox(stagesCombox), strat, router, stations);
-            gen = new RandomScheduleGenerator(stations.size(), getIntVal(trainsTextField), getIntVal(timeFrameTextField), strat, seed);
-            gen.setBurst(burstSlider.getValue());
-            gen.setCompositionRatio(compSlider.getValue());
-            gen.setCrowdedness(crowdSlider.getValue());
-            gen.setSpeedVar(speedVarSlider.getValue());
-            gen.setTimeSensitivity(timeSlider.getValue());
+        SingleAnimationRunner(RoutingStrategy strat) {
+            aniDur = getIntVal(aniDurTextField);
+            loadGraph(streamFromBox(stagesCombox), strat);
+            loadTrains(strat, getLongVal(seedValTextfield));
+            runnerSche = new Scheduler(router, stations, updateQueue);
         }
 
         @Override
         protected Void doInBackground() throws Exception {
-            updateQueue = gen.getSchedule();
-
-            setProgress(0);
-
-            aniDur = getIntVal(aniDurTextField);
-
-            runnerSche = new Scheduler(router, stations, updateQueue);
-            setProgress(20);
+            setProgress(40);
+            bootstrapTrains(runnerSche);
             publish("Running simulation");
-
-            bootstrapTrains(runnerSche, updateQueue, router);
             runnerSche.runSimulation();
             runnerSche.runAnimation(STR_BASELINE, aniDur);
             return null;
@@ -419,13 +422,13 @@ class MainMenu implements PropertyChangeListener {
 
             publish("Generating");
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
-            loadTrains(RoutingStrategy.BASELINE);
-            Scheduler base_sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+            loadTrains(RoutingStrategy.BASELINE, getLongVal(seedValTextfield));
+            Scheduler base_sche = new Scheduler(router, stations, updateQueue);
             bootstrapTrains(base_sche);
 
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
-            loadTrains(RoutingStrategy.IMPROVED);
-            Scheduler impd_sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+            loadTrains(RoutingStrategy.IMPROVED, getLongVal(seedValTextfield));
+            Scheduler impd_sche = new Scheduler(router, stations, updateQueue);
             bootstrapTrains(impd_sche);
             setProgress(40);
 
@@ -480,8 +483,8 @@ class MainMenu implements PropertyChangeListener {
                 for (int i = 0; i < trials; i++) {
                     setProgress((int) (i * 100.0 / trials));
                     loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
-                    loadTrains(RoutingStrategy.BASELINE);
-                    Scheduler sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+                    loadTrains(RoutingStrategy.BASELINE, seed);
+                    Scheduler sche = new Scheduler(router, stations, updateQueue);
                     bootstrapTrains(sche);
                     sche.runSimulation();
                     int baseDur = sche.getDuration();
@@ -489,8 +492,8 @@ class MainMenu implements PropertyChangeListener {
                     double baseCost = sche.getActualCost();
 
                     loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
-                    loadTrains(RoutingStrategy.IMPROVED);
-                    sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+                    loadTrains(RoutingStrategy.IMPROVED, seed);
+                    sche = new Scheduler(router, stations, updateQueue);
                     bootstrapTrains(sche);
                     sche.runSimulation();
                     int impDur = sche.getDuration();
@@ -535,22 +538,4 @@ class MainMenu implements PropertyChangeListener {
         }
     }
 
-
-    private static class StatsRunRecord {
-        public final long seed;
-        public final double minCost;
-        public final double baseCost;
-        public final double impdCost;
-        public final int baseDuration;
-        public final int impdDuration;
-
-        StatsRunRecord(long seed, double minCost, double baseCost, double impdCost, int baseDuration, int impdDuration) {
-            this.seed = seed;
-            this.minCost = minCost;
-            this.baseCost = baseCost;
-            this.impdCost = impdCost;
-            this.baseDuration = baseDuration;
-            this.impdDuration = impdDuration;
-        }
-    }
 }
