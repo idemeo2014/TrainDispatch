@@ -1,7 +1,7 @@
 import java.util.List;
 
 
-public class BaselineStation extends Station {
+class BaselineStation extends Station {
 
     public BaselineStation(String name, int id, Location loc, Router router) {
         super(name, id, loc, router);

@@ -1,4 +1,4 @@
-public enum RoutingStrategy {
+enum RoutingStrategy {
     BASELINE,
     IMPROVED
 }

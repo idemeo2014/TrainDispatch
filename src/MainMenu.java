@@ -1,6 +1,17 @@
 import org.json.JSONObject;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JSlider;
+import javax.swing.JTextField;
+import javax.swing.SwingWorker;
+import javax.swing.WindowConstants;
+
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -9,16 +20,19 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 
-class MainMenu implements PropertyChangeListener {
+public class MainMenu implements PropertyChangeListener {
 
     private static final String[] AVAILABLE_STAGES = { "US.txt", "China.txt", "Japan.txt" };
     public static final String STR_BASELINE = "Baseline";
@@ -475,12 +489,15 @@ class MainMenu implements PropertyChangeListener {
 
         @Override
         protected Void doInBackground() throws Exception {
-            String csvFilename = String.format("results-%s.csv", dateStr);
+            String csvFilename = String.format("%s-results.csv", dateStr);
 
             writeContextFile();
 
             setProgress(0);
-            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvFilename))) {  // @TODO able to write within jar
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(System.getProperty("user.dir"), csvFilename)))) {
+                writer.write(CSV_HEADER_STR);
+                writer.newLine();
+
                 for (int i = 0; i < trials; i++) {
                     setProgress((int) (i * 100.0 / trials));
                     loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
@@ -505,6 +522,7 @@ class MainMenu implements PropertyChangeListener {
 
                     seed = System.nanoTime();
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -530,8 +548,8 @@ class MainMenu implements PropertyChangeListener {
             contextObj.put("passengerTrainRatio", timeSlider.getValue());
             contextObj.put("speedVar", speedVarSlider.getValue());
 
-            String outputFilename = String.format("context-%s.json", dateStr);
-            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFilename))) {
+            String jsonFilename = String.format("%s-context.json", dateStr);
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(System.getProperty("user.dir"), jsonFilename)))) {
                 writer.write(contextObj.toString(2));
             } catch (IOException e) {
                 e.printStackTrace();

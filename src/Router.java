@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 
 
-public class Router {
+class Router {
 
     Collection<Rail>[] adj;      // adjacency list
     public final int numVertices;

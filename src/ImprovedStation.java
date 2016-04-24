@@ -1,7 +1,7 @@
 import java.util.List;
 
 
-public class ImprovedStation extends Station {
+class ImprovedStation extends Station {
 
     private static final int CACHE_SIZE = 40;  // Max size of paths cache
 

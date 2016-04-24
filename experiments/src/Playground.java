@@ -1,5 +1,3 @@
-import org.json.JSONObject;
-
 import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -13,18 +11,7 @@ import java.util.Random;
 
 class Playground {
     public static void main(String[] args) {
-        JSONObject contextObj = new JSONObject();
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("HH-mm-ss-ddMMMyyyy");
-        String dateStr = dateFormatter.format(new Date());
-
-        contextObj.put("time", dateStr);
-
-        String outputFilename = "./" + "context-" + dateStr + ".json";
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFilename))) {
-            writer.write(contextObj.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        stats();
     }
 
 
@@ -46,7 +33,7 @@ class Playground {
         int size = 2000;
         double[] a = new double[size];
         for (int i = 0; i < size; i++) {
-            a[i] = normal(3.0, 10);
+            a[i] = normal(90.0, 26.0);
         }
 
         double minA = StdStats.min(a);

@@ -1,6 +1,6 @@
 .DS_Store
 .idea
-out/
+production/
 *.class
 
 ## Core latex/pdflatex auxiliary files:

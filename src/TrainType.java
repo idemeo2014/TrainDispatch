@@ -1,4 +1,4 @@
-public enum TrainType {
+enum TrainType {
     A(2),     // priority
     P(1),     // passenger
     F(0.7);   // freight

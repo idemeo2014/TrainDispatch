@@ -1,5 +1,5 @@
 
-public class ImprovedTrain extends Train {
+class ImprovedTrain extends Train {
 
     public ImprovedTrain(String name, int departTime, int from, int to, TrainType traintype, double trainLen, double speed, double costPerMile, double costPerIdleTick) {
         super(name, departTime, from, to, traintype, trainLen, speed, costPerMile, costPerIdleTick);

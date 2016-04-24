@@ -2,7 +2,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 
 
-public class Rail {
+class Rail {
 
     private static final double SAFE_DISTANCE = 0.15;  // typical braking distance
     public final int kore;        // station with lower index

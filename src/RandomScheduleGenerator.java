@@ -1,24 +1,26 @@
-
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
 class RandomScheduleGenerator {
 
     // constants
-    static final double AVG_SPEED = 3.0;
-    static final double SPEED_STDEV = 1.0;
-    static final double AVG_CPM= 5.0;
-    static final double CPM_STDEV= 5.0;
-    public static final double AVG_TRAIN_LEN = 1.0;
-    public static final double TRAIN_LEN_STDEV = 0.05;
-    static final double COST_PER_MILE = 5.0;
+    static final double AVG_SPEED = 90.0;
+    static final double MAX_SPEED_STDEV = 26.0;
+
+    static final double AVG_CPM_FUEL = 20.0;
+    static final double AVG_CPM_LABOR = 80.0;
+    static final double MAX_CPM_STDEV_FUEL = 1.0;
+    static final double MAX_CPM_STDEV_LABOR = 5.0;
+    static final double MAX_CPT = 100.0;
+
+    static final double AVG_TRAIN_LEN = 1.0;
+    static final double TRAIN_LEN_STDEV = 0.05;
 
     // context
     private Random rgen;
     private RoutingStrategy strategy;  // used for creating trains
-    private int numVertices;
+    private int numStations;
     private int numTrains;
     private long customSeed;
     private int timeFrame;       // time limit for all trains to depart
@@ -38,7 +40,7 @@ class RandomScheduleGenerator {
     public RandomScheduleGenerator(int nv, int nt, int tf, RoutingStrategy st, long cuseed) {
         // context
         strategy = st;
-        numVertices = nv;
+        numStations = nv;
         numTrains = nt;
         customSeed = cuseed;
         timeFrame = tf;
@@ -77,49 +79,76 @@ class RandomScheduleGenerator {
         return trains;
     }
 
+    /**
+     * Prob of (Burst / 255) to be the same as last. Otherwise uniform among all stations
+     */
     private int nextDepart() {
         int candidate = uniform(0, 256) <= burst ? lastChosenDepartTime : uniform(0, timeFrame + 1);
         lastChosenDepartTime = candidate;
         return candidate;
     }
 
+    /**
+     * Prob of (Crowdedness / 255) to be the same as last. Otherwise uniform among all stations
+     */
     private int nextSource() {
-        int candidate = uniform(0, 256) <= crowdedness ? lastChosenSourceInd : uniform(0, numVertices);
+        int candidate = uniform(0, 256) <= crowdedness ? lastChosenSourceInd : uniform(0, numStations);
         lastChosenSourceInd = candidate;
         return candidate;
     }
 
+    /**
+     * Uniform among all stations. Won't be the same as source
+     */
     private int nextDest(int sourceInd) {
-        int candidate = uniform(0, numVertices);
+        int candidate = uniform(0, numStations);
         while (candidate == sourceInd) {
-            candidate = uniform(0, numVertices);
+            candidate = uniform(0, numStations);
         }
         return candidate;
     }
 
-    private double nextSpeed() {  // @TODO implement this!!!
-        return normal(AVG_SPEED, SPEED_STDEV);
+    /**
+     * Normal with stdev linear to Speed Variance
+     */
+    private double nextSpeed() {
+        return normal(AVG_SPEED, speedVariance / 255.0 * MAX_SPEED_STDEV);
     }
 
-    private double nextCpm(TrainType tp) {  // @TODO implement this!!!
-        return normal(AVG_CPM, CPM_STDEV);
+    /**
+     * Only fuel cost for F. Additional labor cost for A and P
+     */
+    private double nextCpm(TrainType tp) {
+        if (tp == TrainType.F) {
+            return normal(AVG_CPM_FUEL, MAX_CPM_STDEV_FUEL);
+        } else {
+            return normal(AVG_CPM_LABOR, MAX_CPM_STDEV_LABOR) + normal(AVG_CPM_FUEL, MAX_CPM_STDEV_FUEL);
+        }
     }
 
-    private double nextCpt() {  // @TODO implement this!!!
-        return timeSense;
+    /**
+     * Linear as Time Worth
+     */
+    private double nextCpt() {
+        return timeSense / 255.0 * MAX_CPT;
     }
 
+    /**
+     * Trivial number. Fixed normal
+     */
     private double nextTrainLen() {
         return normal(AVG_TRAIN_LEN, TRAIN_LEN_STDEV);
     }
 
-    private TrainType nextTrainType() {  // @TODO implement this!!!
+    /**
+     * Priority train fixed prob 0.1 (25/255)
+     * Passenger train prob equal to P Train Ratio
+     */
+    private TrainType nextTrainType() {
         double v = uniform(0, 256);
-        if (v < morePTrain) {
-            return TrainType.P;
-        } else {
-            return TrainType.F;
-        }
+        if (v < 25)         return TrainType.A;
+        if (v < morePTrain) return TrainType.P;
+        return TrainType.F;
     }
 
     /**
