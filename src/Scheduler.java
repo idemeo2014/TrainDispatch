@@ -28,15 +28,15 @@ public class Scheduler {
         }
     }
 
-    public void calculateOptimalCost() {
+    public void runSimulation() {
+        // calculate optimal cost
         optimalCost = 0.0;
         for (Train train : updateQueue.values()) {
             double shortestPathLength = router.pathTotalLength(train.path) + (train.path.size()-1) * train.length;
             optimalCost += shortestPathLength * train.CPM;
         }
-    }
 
-    public void runSimulation() {
+        // simulation loop
         while (updateQueue.size() > 0) {
             removeTrains();
             updateTrains();
@@ -78,6 +78,10 @@ public class Scheduler {
 
     public double getActualCost() {
         return actualCost;
+    }
+
+    public int getDuration() {
+        return now;
     }
 
     private void printOutput() {

@@ -1,26 +1,23 @@
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.JSlider;
-import javax.swing.JTextField;
-import javax.swing.WindowConstants;
+import org.json.JSONObject;
+
+import javax.swing.*;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 
-class MainMenu {
+class MainMenu implements PropertyChangeListener {
 
     private static final String[] AVAILABLE_STAGES = { "US.txt", "China.txt", "Japan.txt" };
     public static final String STR_BASELINE = "Baseline";
@@ -29,7 +26,7 @@ class MainMenu {
     // shared access
     private static JComboBox<String> stagesCombox;
     private static JTextField trainsTextField;
-    private static JTextField timeTextField;
+    private static JTextField timeFrameTextField;
     private static JTextField numTrialsTextField;
     private static JTextField seedValTextfield;
     private static JSlider burstSlider;
@@ -41,10 +38,7 @@ class MainMenu {
     private static JTextField aniDurTextField;
     private static JLabel statusLabel;
 
-    private static Router router;
-    private static List<Train> updateQueue;
-    private static Map<Integer, Station> stations;
-
+    private static MainMenu mainMenu = new MainMenu();
     private MainMenu() {}
 
     public static void main(String[] args) {
@@ -104,12 +98,12 @@ class MainMenu {
         constraints.gridy = 3;
         menuPanel.add(new JLabel("Departure Time Frame"), constraints);
 
-        timeTextField = new JTextField("20");
+        timeFrameTextField = new JTextField("20");
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.gridwidth = 2;
         constraints.gridx = 1;
         constraints.gridy = 3;
-        menuPanel.add(timeTextField, constraints);
+        menuPanel.add(timeFrameTextField, constraints);
 
         // Burst
         constraints.gridx = 0;
@@ -201,8 +195,9 @@ class MainMenu {
         runBaseButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                progressBar.setValue(0);
-                (new Thread(new SingleAnimationRunner(RoutingStrategy.BASELINE))).start();
+                SingleAnimationRunner runner = new SingleAnimationRunner(RoutingStrategy.BASELINE);
+                runner.addPropertyChangeListener(mainMenu);
+                runner.execute();
             }
         });
         constraints.gridwidth = 1;
@@ -215,8 +210,9 @@ class MainMenu {
         runImpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                progressBar.setValue(0);
-                (new Thread(new SingleAnimationRunner(RoutingStrategy.IMPROVED))).start();
+                SingleAnimationRunner runner = new SingleAnimationRunner(RoutingStrategy.IMPROVED);
+                runner.addPropertyChangeListener(mainMenu);
+                runner.execute();
             }
         });
         constraints.gridwidth = 1;
@@ -229,8 +225,9 @@ class MainMenu {
         runCompButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                progressBar.setValue(0);
-                (new Thread(new ComparisonAnimationRunner())).start();
+                ComparisonAnimationRunner runner = new ComparisonAnimationRunner();
+                runner.addPropertyChangeListener(mainMenu);
+                runner.execute();
             }
         });
         constraints.gridwidth = 1;
@@ -255,7 +252,9 @@ class MainMenu {
         runStatsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                StatisticsRunner runner = new StatisticsRunner();
+                runner.addPropertyChangeListener(mainMenu);
+                runner.execute();
             }
         });
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -288,7 +287,7 @@ class MainMenu {
         menuFrame.setVisible(true);
     }
 
-    private static void loadGraph(InputStream inSt, RoutingStrategy strategy) {
+    private static void loadGraph(InputStream inSt, RoutingStrategy strategy, Router router, Map<Integer, Station> stations) {
         Scanner in = new Scanner(inSt);
         double mapScale = in.nextDouble();
         int stationCount = in.nextInt();
@@ -331,25 +330,10 @@ class MainMenu {
     }
 
     /**
-     * Use the random schedule generator with current parameters to produce a new
-     * schedule which is saved in updateQueue
-     */
-    private static void loadTrains(RoutingStrategy st) {
-        RandomScheduleGenerator gen = new RandomScheduleGenerator(stations.size(),
-                getIntVal(trainsTextField), getIntVal(timeTextField), st, getLongVal(seedValTextfield));
-        gen.setBurst(burstSlider.getValue());
-        gen.setCompositionRatio(compSlider.getValue());
-        gen.setCrowdedness(crowdSlider.getValue());
-        gen.setSpeedVar(speedVarSlider.getValue());
-        gen.setTimeSensitivity(timeSlider.getValue());
-        updateQueue = gen.getSchedule();
-    }
-
-    /**
      * Assign to the trains currently in updateQueue their shortest paths,
      * and the scheduler they should report to.
      */
-    private static void bootstrapTrains(Scheduler sche) {
+    private static void bootstrapTrains(Scheduler sche, List<Train> updateQueue, Router router) {
         for (Train train : updateQueue) {
             train.setPath(router.shortest(train.fromInd, train.toInd));
             train.setBoss(sche);
@@ -368,80 +352,189 @@ class MainMenu {
         return MainMenu.class.getResourceAsStream(cb.getItemAt(cb.getSelectedIndex()));
     }
 
-    private static class SingleAnimationRunner implements Runnable {
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (evt.getPropertyName().equalsIgnoreCase("progress")) {
+            int progress = (Integer) evt.getNewValue();
+            progressBar.setValue(progress);
+        }
+    }
+
+    private static class SingleAnimationRunner extends SwingWorker<Void, String> {
         private Scheduler runnerSche;
         private int aniDur;
+        private RoutingStrategy strat;
+        private RandomScheduleGenerator gen;
 
-        SingleAnimationRunner(RoutingStrategy strat) {
-            aniDur = getIntVal(aniDurTextField);
-            loadGraph(streamFromBox(stagesCombox), strat);
-            loadTrains(strat);
-            runnerSche = new Scheduler(router, stations, updateQueue);
+        private Router router;
+        private List<Train> updateQueue;
+        private Map<Integer, Station> stations;
+
+        SingleAnimationRunner(RoutingStrategy strat, long seed) {
+            loadGraph(streamFromBox(stagesCombox), strat, router, stations);
+            gen = new RandomScheduleGenerator(stations.size(), getIntVal(trainsTextField), getIntVal(timeFrameTextField), strat, seed);
+            gen.setBurst(burstSlider.getValue());
+            gen.setCompositionRatio(compSlider.getValue());
+            gen.setCrowdedness(crowdSlider.getValue());
+            gen.setSpeedVar(speedVarSlider.getValue());
+            gen.setTimeSensitivity(timeSlider.getValue());
         }
 
         @Override
-        public void run() {
-            progressBar.setValue(40);
-            statusLabel.setText("Running shortest path");
-            bootstrapTrains(runnerSche);
-            runnerSche.calculateOptimalCost();
-            statusLabel.setText("Running simulation");
+        protected Void doInBackground() throws Exception {
+            updateQueue = gen.getSchedule();
+
+            setProgress(0);
+
+            aniDur = getIntVal(aniDurTextField);
+
+            runnerSche = new Scheduler(router, stations, updateQueue);
+            setProgress(20);
+            publish("Running simulation");
+
+            bootstrapTrains(runnerSche, updateQueue, router);
             runnerSche.runSimulation();
-            progressBar.setValue(90);
             runnerSche.runAnimation(STR_BASELINE, aniDur);
+            return null;
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            statusLabel.setText(chunks.get(chunks.size()-1));
+            chunks.clear();
+        }
+
+        @Override
+        protected void done() {
             statusLabel.setText("Done");
             progressBar.setValue(100);
         }
     }
 
-    private static class ComparisonAnimationRunner implements Runnable {
-        private Scheduler base_sche;
-        private Scheduler impd_sche;
-        private int aniDur;
+    private static class ComparisonAnimationRunner extends SwingWorker<Void, String> {
 
-        ComparisonAnimationRunner() {
-            aniDur = getIntVal(aniDurTextField);
+        @Override
+        protected Void doInBackground() throws Exception {
+            int aniDur = getIntVal(aniDurTextField);
 
-            statusLabel.setText("Generating");
+            publish("Generating");
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
             loadTrains(RoutingStrategy.BASELINE);
-            base_sche = new Scheduler(router, stations, updateQueue);
+            Scheduler base_sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
             bootstrapTrains(base_sche);
 
             loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
             loadTrains(RoutingStrategy.IMPROVED);
-            impd_sche = new Scheduler(router, stations, updateQueue);
+            Scheduler impd_sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
             bootstrapTrains(impd_sche);
+            setProgress(40);
+
+            publish("Running simulation");
+            base_sche.runSimulation();
+            impd_sche.runSimulation();
+
+            base_sche.runAnimation(STR_BASELINE, aniDur);
+            impd_sche.runAnimation(STR_IMPROVED, aniDur);
+
+            publish("Done");
+
+            return null;
         }
 
         @Override
-        public void run() {
-            progressBar.setValue(40);
-            base_sche.calculateOptimalCost();
-            progressBar.setValue(60);
-            impd_sche.calculateOptimalCost();
-            statusLabel.setText("Running simulation");
-            base_sche.runSimulation();
-            impd_sche.runSimulation();
-            progressBar.setValue(80);
-            base_sche.runAnimation(STR_BASELINE, aniDur);
-            impd_sche.runAnimation(STR_IMPROVED, aniDur);
+        protected void process(List<String> chunks) {
+            statusLabel.setText(chunks.get(chunks.size()-1));
+            chunks.clear();
+        }
+
+        @Override
+        protected void done() {
             statusLabel.setText("Done");
             progressBar.setValue(100);
         }
     }
 
-    private static class StatisticsRunner implements Runnable {
+    private static class StatisticsRunner extends SwingWorker<Void, Void> {
+
+        private static final String CSV_HEADER_STR = "trial,seed,base_duration,imp_duration,min_cost,base_cost,imp_cost";
+        private String dateStr;
+        private int trials;
+        private long seed;
 
         StatisticsRunner() {
-
+            statusLabel.setText("Running trials");
+            trials = getIntVal(numTrialsTextField);
+            seed = getLongVal(seedValTextfield);
+            SimpleDateFormat dateFormatter = new SimpleDateFormat("HH-mm-ss-ddMMMyyyy");
+            dateStr = dateFormatter.format(new Date());
         }
 
         @Override
-        public void run() {
+        protected Void doInBackground() throws Exception {
+            String csvFilename = String.format("./results-%s.csv", dateStr);
 
+            writeContextFile();
+
+            setProgress(0);
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(csvFilename))) {
+                for (int i = 0; i < trials; i++) {
+                    setProgress((int) (i * 100.0 / trials));
+                    loadGraph(streamFromBox(stagesCombox), RoutingStrategy.BASELINE);
+                    loadTrains(RoutingStrategy.BASELINE);
+                    Scheduler sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+                    bootstrapTrains(sche);
+                    sche.runSimulation();
+                    int baseDur = sche.getDuration();
+                    double minCost = sche.getOptimalCost();
+                    double baseCost = sche.getActualCost();
+
+                    loadGraph(streamFromBox(stagesCombox), RoutingStrategy.IMPROVED);
+                    loadTrains(RoutingStrategy.IMPROVED);
+                    sche = new Scheduler(router.get(), stations.get(), updateQueue.get());
+                    bootstrapTrains(sche);
+                    sche.runSimulation();
+                    int impDur = sche.getDuration();
+                    double impCost = sche.getActualCost();
+
+                    writer.write(String.format("%d,%d,%d,%d,%s,%s,%s", i, seed, baseDur, impDur, minCost, baseCost, impCost));
+                    writer.newLine();
+
+                    seed = System.nanoTime();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            statusLabel.setText("Done");
+            progressBar.setValue(100);
+        }
+
+        private void writeContextFile() {
+            JSONObject contextObj = new JSONObject();
+
+            contextObj.put("time", dateStr);
+            contextObj.put("numberTrains", getIntVal(trainsTextField));
+            contextObj.put("departureTimeFrame", getIntVal(timeFrameTextField));
+            contextObj.put("burst", burstSlider.getValue());
+            contextObj.put("crowdedness", crowdSlider.getValue());
+            contextObj.put("timeWorth", timeSlider.getValue());
+            contextObj.put("passengerTrainRatio", timeSlider.getValue());
+            contextObj.put("speedVar", speedVarSlider.getValue());
+
+            String outputFilename = String.format("./context-%s.json", dateStr);
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFilename))) {
+                writer.write(contextObj.toString(2));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
+
 
     private static class StatsRunRecord {
         public final long seed;

@@ -1,17 +1,30 @@
+import org.json.JSONObject;
+
 import java.awt.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.PriorityQueue;
 import java.util.Random;
 
 class Playground {
     public static void main(String[] args) {
-//        stats();
-        System.out.println(Double.MAX_VALUE);
-//        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-//        int width = gd.getDisplayMode().getWidth();
-//        int height = gd.getDisplayMode().getHeight();
-//        System.out.println(width + " " + height);
+        JSONObject contextObj = new JSONObject();
+        SimpleDateFormat dateFormatter = new SimpleDateFormat("HH-mm-ss-ddMMMyyyy");
+        String dateStr = dateFormatter.format(new Date());
+
+        contextObj.put("time", dateStr);
+
+        String outputFilename = "./" + "context-" + dateStr + ".json";
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFilename))) {
+            writer.write(contextObj.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
